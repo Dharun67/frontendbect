@@ -3,7 +3,9 @@
 // No localStorage is used. The browser sends the session cookie automatically
 // on every request via `credentials: 'include'`.
 
-const API_BASE = "http://localhost:5000/api/portal";
+const API_BASE = process.env.REACT_APP_API_URL 
+  ? `${process.env.REACT_APP_API_URL}/api/portal`
+  : "http://localhost:5000/api/portal";
 
 // ==========================================
 // AUTHENTICATED FETCH HELPER
@@ -83,9 +85,12 @@ export const logout = logoutUser;          // Alias for backward compatibility
  */
 export const initializeDefaultData = async () => {
   try {
-    await fetch(`http://localhost:5000/health`, { credentials: "include" });
+    const healthUrl = process.env.REACT_APP_API_URL 
+      ? `${process.env.REACT_APP_API_URL}/health`
+      : "http://localhost:5000/health";
+    await fetch(healthUrl, { credentials: "include" });
   } catch (error) {
-    console.warn("Backend server not reachable on port 5000. Ensure server.js is running.");
+    console.warn("Backend server not reachable. Ensure server.js is running.");
   }
 };
 
