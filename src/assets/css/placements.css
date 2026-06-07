@@ -1,0 +1,924 @@
+/* ---- HANDCRAFTED CLASSIC PLACEMENTS STYLE ---- */
+
+/* Color Variables */
+:root {
+  --college-navy: #0f172a;
+  --college-blue: #1e3a8a;
+  --college-gold: #c9a84c;
+  --bg-slate: #f8fafc;
+  --border-color: #cbd5e1;
+  --border-light: #e2e8f0;
+  --text-dark: #334155;
+  --text-muted: #64748b;
+}
+
+/* Page body wrapper */
+.placements-body-bg {
+  background-color: #f1f5f9;
+  padding: 30px 0;
+}
+
+/* Factual Hero Banner */
+.place-hero {
+  background: var(--college-navy);
+  margin: 0 20px 25px;
+  border-radius: 16px;
+  padding: 60px 40px;
+  border-bottom: 5px solid var(--college-gold);
+  text-align: center;
+}
+
+.place-hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.place-hero h1 {
+  font-size: 38px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 15px;
+}
+
+.place-hero h1 span {
+  color: var(--college-gold);
+}
+
+.place-hero p {
+  font-size: 15px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin: 0 0 40px;
+}
+
+/* Stats Counter Layout */
+.place-stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+}
+
+.place-stat-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 140px;
+  flex: 1;
+  text-align: center;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.place-stat-card:hover {
+  border-color: var(--college-gold);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.place-stat-card h3 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--college-gold);
+  margin: 0 0 5px;
+}
+
+.place-stat-card p {
+  font-size: 11px;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Layout Cards */
+.place-section {
+  background: #ffffff;
+  margin: 0 20px 25px;
+  border-radius: 16px;
+  padding: 40px 35px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.place-section-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 8px;
+}
+
+.place-section-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.place-section-title-line {
+  width: 40px;
+  height: 3px;
+  background: var(--college-gold);
+  margin-bottom: 25px;
+  border-radius: 2px;
+}
+
+/* Placement Officer Grid */
+.place-officer-grid {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.place-officer-img-wrap {
+  flex: 0 0 260px;
+  max-width: 100%;
+  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+.place-officer-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.place-officer-content {
+  flex: 1;
+  min-width: 280px;
+}
+
+.place-officer-tag {
+  font-size: 11px;
+  color: var(--college-gold);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  display: inline-block;
+}
+
+.place-officer-content h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 4px;
+}
+
+.place-officer-content .designation {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.place-officer-quote {
+  font-size: 14.5px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text-dark);
+  background: var(--bg-slate);
+  padding: 20px 25px;
+  border-left: 3px solid var(--college-gold);
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 20px;
+}
+
+.place-officer-bio {
+  font-size: 14px;
+  color: var(--text-dark);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Training Roadmap Controls */
+.place-roadmap-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 25px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 10px;
+  overflow-x: auto;
+}
+
+.place-roadmap-tab {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 10px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.place-roadmap-tab:hover {
+  background: var(--bg-slate);
+  color: var(--college-blue);
+}
+
+.place-roadmap-tab.active {
+  background: var(--college-blue);
+  color: #ffffff;
+}
+
+.place-roadmap-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.place-roadmap-card {
+  background: var(--bg-slate);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 24px;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.place-roadmap-card:hover {
+  border-color: var(--college-gold);
+  background: #ffffff;
+}
+
+.place-roadmap-card .card-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--college-gold);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.place-roadmap-card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 8px;
+}
+
+.place-roadmap-card p {
+  font-size: 13px;
+  color: var(--text-dark);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Department Stats (Clean Flat Layout) */
+.place-section.dark {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.place-section.dark .place-section-title {
+  color: var(--college-navy);
+}
+
+.place-section.dark .place-section-sub {
+  color: var(--text-muted);
+}
+
+.place-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 750px;
+  margin: 0 auto;
+}
+
+.place-chart-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.place-chart-label {
+  flex: 0 0 200px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.place-chart-bar-bg {
+  flex: 1;
+  height: 16px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.place-chart-bar-fill {
+  height: 100%;
+  background: var(--college-blue);
+  border-radius: 8px;
+  transition: width 1s ease-in-out;
+}
+
+.place-chart-value {
+  flex: 0 0 50px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--college-navy);
+  text-align: right;
+}
+
+/* Recruiter Directory Controls */
+.place-directory-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 25px;
+}
+
+.place-search-box {
+  flex: 1;
+  min-width: 250px;
+}
+
+.place-search-input {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 13.5px;
+  background: #ffffff;
+  color: var(--text-dark);
+}
+
+.place-search-input:focus {
+  outline: none;
+  border-color: var(--college-blue);
+}
+
+.place-filter-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.place-filter-btn {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.place-filter-btn:hover {
+  border-color: var(--college-blue);
+  color: var(--college-blue);
+}
+
+.place-filter-btn.active {
+  background: var(--college-blue);
+  color: #ffffff;
+  border-color: var(--college-blue);
+}
+
+/* Recruiters Grid */
+.place-recruiters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+}
+
+.place-recruiter-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 25px 15px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.place-recruiter-card:hover {
+  border-color: var(--college-blue);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.place-recruiter-logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  background: var(--bg-slate);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  border: 1px solid var(--border-light);
+}
+
+.place-recruiter-logo svg {
+  width: 28px;
+  height: 28px;
+}
+
+.place-recruiter-card h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 4px;
+}
+
+.place-recruiter-card .category {
+  font-size: 10px;
+  color: var(--college-gold);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.place-recruiter-card .package {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Alumni Testimonials */
+.place-testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.place-testimonial-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+}
+
+.place-testimonial-card:hover {
+  border-color: var(--college-gold);
+}
+
+.place-testimonial-card .quote-icon {
+  font-size: 36px;
+  color: var(--college-gold);
+  line-height: 1;
+  margin-bottom: 10px;
+  font-family: serif;
+}
+
+.place-testimonial-card p {
+  font-size: 13.5px;
+  color: var(--text-dark);
+  line-height: 1.6;
+  flex: 1;
+  margin: 0 0 20px;
+}
+
+.place-testimonial-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--border-light);
+  padding-top: 16px;
+}
+
+.place-testimonial-author img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.place-testimonial-author h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 2px;
+}
+
+.place-testimonial-author p {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* FAQ Accordion Section */
+.place-faq-wrapper {
+  max-width: 750px;
+  margin: 0 auto;
+}
+
+.place-faq-item {
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.place-faq-header {
+  width: 100%;
+  padding: 16px 20px;
+  background: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.place-faq-header h4 {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--college-navy);
+  margin: 0;
+}
+
+.place-faq-icon {
+  font-size: 18px;
+  color: var(--college-gold);
+  transition: transform 0.2s;
+}
+
+.place-faq-item.active {
+  border-color: var(--college-blue);
+}
+
+.place-faq-item.active .place-faq-header {
+  background: var(--bg-slate);
+}
+
+.place-faq-item.active .place-faq-icon {
+  transform: rotate(45deg);
+}
+
+.place-faq-body {
+  max-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  transition: max-height 0.25s ease-out;
+}
+
+.place-faq-item.active .place-faq-body {
+  max-height: 200px;
+}
+
+.place-faq-body-content {
+  padding: 16px 20px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  border-top: 1px solid var(--border-light);
+}
+
+/* Classic Company Details Modal */
+.company-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.company-modal-content {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.company-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.company-modal-close:hover {
+  background: #e2e8f0;
+  color: var(--college-navy);
+}
+
+.company-modal-header {
+  padding: 30px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.company-modal-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  background: var(--bg-slate);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.company-modal-logo svg {
+  width: 32px;
+  height: 32px;
+}
+
+.company-modal-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 2px;
+}
+
+.company-modal-header .category {
+  font-size: 11px;
+  color: var(--college-gold);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.company-modal-body {
+  padding: 30px;
+}
+
+.company-modal-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.info-item {
+  background: var(--bg-slate);
+  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-light);
+}
+
+.info-item h5 {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 0 0 2px;
+  letter-spacing: 0.5px;
+}
+
+.info-item p {
+  font-size: 14.5px;
+  color: var(--college-navy);
+  font-weight: 700;
+  margin: 0;
+}
+
+.company-modal-text-section {
+  margin-bottom: 20px;
+}
+
+.company-modal-text-section h4 {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.company-modal-text-section p {
+  font-size: 13.5px;
+  color: var(--text-dark);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.company-modal-text-section ol {
+  padding-left: 15px;
+  margin: 0;
+}
+
+.company-modal-text-section li {
+  font-size: 13.5px;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .place-hero {
+    padding: 40px 20px;
+    margin: 0 10px 15px;
+  }
+  .place-hero h1 {
+    font-size: 28px;
+  }
+  .place-stats-grid {
+    gap: 10px;
+  }
+  .place-section {
+    padding: 25px 20px;
+    margin: 0 10px 15px;
+  }
+  .place-officer-img-wrap {
+    flex: 1 1 100%;
+    height: 260px;
+  }
+  .place-directory-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .place-chart-label {
+    flex: 1 1 100%;
+  }
+}
+
+/* MOU Grid and Card Styling */
+.place-mou-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.place-mou-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 25px;
+  transition: border-color 0.2s;
+}
+
+.place-mou-card:hover {
+  border-color: var(--college-blue);
+}
+
+.place-mou-card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 8px;
+}
+
+.place-mou-card span {
+  font-size: 11px;
+  color: var(--college-gold);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.place-mou-card p {
+  font-size: 13.5px;
+  color: var(--text-dark);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Higher Education and GATE preparation cell */
+.place-higher-edu {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.place-higher-edu-card {
+  flex: 1 1 300px;
+  background: var(--bg-slate);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 30px;
+}
+
+.place-higher-edu-card h4 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 12px;
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: 8px;
+}
+
+.place-higher-edu-card p {
+  font-size: 13.5px;
+  color: var(--text-dark);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.place-higher-edu-list {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.place-higher-edu-list li {
+  font-size: 13px;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* Policy list styles */
+.place-policy-list {
+  padding-left: 20px;
+  margin: 0 0 20px;
+}
+
+.place-policy-list li {
+  font-size: 14px;
+  color: var(--text-dark);
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+
+/* Advisory grid and card styles */
+.place-advisory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.place-advisory-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.place-advisory-card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 4px;
+}
+
+.place-advisory-card span {
+  font-size: 12px;
+  color: var(--college-gold);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.place-advisory-card p {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Recruiter Contact Panel styles */
+.place-contact-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 25px;
+  background: var(--bg-slate);
+  border-radius: 12px;
+  padding: 30px;
+  border: 1px solid var(--border-light);
+}
+
+.place-contact-item h5 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--college-navy);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.place-contact-item p {
+  font-size: 13.5px;
+  color: var(--text-dark);
+  line-height: 1.6;
+  margin: 0;
+}

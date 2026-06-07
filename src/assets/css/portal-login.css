@@ -1,0 +1,7 @@
+.portal-login-card { max-width:480px; position:relative; padding-top:55px; }
+.portal-login-badge { position:absolute; top:-16px; left:50%; transform:translateX(-50%); font-size:13px; font-weight:700; padding:7px 24px; border-radius:35px; white-space:nowrap; font-family:'Poppins',sans-serif; }
+.student-badge { background:#1a1a1a; color:#c9a84c; }
+.faculty-badge { background:#1a4a2e; color:#4caf7d; }
+.admin-badge { background:#1a1a3a; color:#7c9af0; }
+.demo-creds { background:#fafafa; border:1px dashed #ddd; border-radius:16px; padding:10px 18px; text-align:center; margin-top:14px; font-size:12px; color:#888; }
+.demo-creds strong { color:#c9a84c; }
