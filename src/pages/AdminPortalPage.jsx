@@ -10,7 +10,9 @@ import {
   getEvents, addAdminEvent, deleteAdminEvent,
   getAdminActivityLogs, getAdmissionsEnquiries,
   updateAdmissionStatus,
-  getAdminDepartments, getAdminCourses, getAdminSubjects,
+  getAdminDepartments, addAdminDepartment, updateAdminDepartment, deleteAdminDepartment, 
+  getAdminCourses, addAdminCourse, updateAdminCourse, deleteAdminCourse, 
+  getAdminSubjects,
   getAdminBooks, getAdminHostelAllocations, getAdminTransportRoutes,
   getAdminCertificateRequests, approveCertificateRequest, rejectCertificateRequest,
   getAdminComplaints, resolveComplaintTicket, getAdminAllFees
@@ -135,6 +137,8 @@ function AdminPortalPage() {
   const [newFaculty, setNewFaculty] = useState({ name: '', empId: '', dept: 'CSE', designation: 'Asst. Professor', email: '', phone: '', qualification: 'Ph.D', experience: '', specialization: '', password: '' });
   const [newNotice, setNewNotice] = useState({ title: '', content: '', category: 'General', type: 'general' });
   const [newEvent, setNewEvent] = useState({ title: '', description: '', date: '', venue: '', status: 'Upcoming' });
+  const [newDepartment, setNewDepartment] = useState({ name: '', hod: '', icon: '🏛️', color: '#3b82f6', accreditation: '' });
+  const [newCourse, setNewCourse] = useState({ code: '', name: '', dept: 'CSE', sem: 1, credits: 3, type: 'Core', faculty: '' });
 
   const loadEnquiries = useCallback(async () => {
     try {
@@ -301,6 +305,14 @@ function AdminPortalPage() {
         dept: 'CSE', sem: 1, bloodGroup: '', parentName: '', parentPhone: '', address: '',
         religion: '', community: 'General', nationality: 'Indian', aadharNumber: ''
       });
+    } else if (type === 'editDepartment' && data) {
+      setNewDepartment({ name: data.name || '', hod: data.hod || '', icon: data.icon || '🏛️', color: data.color || '#3b82f6', accreditation: data.accreditation || '' });
+    } else if (type === 'department') {
+      setNewDepartment({ name: '', hod: '', icon: '🏛️', color: '#3b82f6', accreditation: '' });
+    } else if (type === 'editCourse' && data) {
+      setNewCourse({ code: data.code || '', name: data.name || '', dept: data.dept || 'CSE', sem: data.sem || 1, credits: data.credits || 3, type: data.type || 'Core', faculty: data.faculty || '' });
+    } else if (type === 'course') {
+      setNewCourse({ code: '', name: '', dept: 'CSE', sem: 1, credits: 3, type: 'Core', faculty: '' });
     }
   };
 
@@ -640,7 +652,7 @@ function AdminPortalPage() {
       <div className="ap-page-header">
         <div><h2>Department Management</h2><p>{departments.length} departments across Best Engineering College</p></div>
         <div className="ap-page-actions">
-          <button className="ap-btn sm gold" onClick={()=>alert('Create Department: Opens new department setup form')}>+ Create Department</button>
+          <button className="ap-btn sm gold" onClick={()=>openModal('department')}>+ Create Department</button>
         </div>
       </div>
       <div className="ap-dept-grid">
@@ -656,7 +668,17 @@ function AdminPortalPage() {
             <div style={{fontSize:12,color:'#10b981',fontWeight:700,marginBottom:14,background:'#f0fdf4',padding:'4px 10px',borderRadius:6,display:'inline-block'}}>{d.accreditation}</div>
             <div style={{display:'flex',gap:8}}>
               <button className="ap-btn sm outline" style={{flex:1}} onClick={()=>alert(`${d.name}\nHOD: ${d.hod}\n${d.facultyCount}, ${d.studentCount}\nAccreditation: ${d.accreditation}`)}>View Details</button>
-              <button className="ap-btn sm ghost" onClick={()=>alert(`Edit department: ${d.name}`)}>Edit</button>
+              <button className="ap-btn sm ghost" onClick={()=>openModal('editDepartment', d)}>Edit</button>
+              <button className="ap-btn sm ghost" style={{color: '#ef4444', borderColor: '#fee2e2'}} onClick={async () => {
+                if (window.confirm(`Delete department ${d.name}?`)) {
+                  const res = await deleteAdminDepartment(d._id || d.id);
+                  if (res && res.success) {
+                    setDepartments(departments.filter(dept => dept._id !== d._id && dept.id !== d.id));
+                  } else {
+                    alert("Failed to delete department");
+                  }
+                }
+              }}>Del</button>
             </div>
           </div>
         ))}
@@ -713,8 +735,17 @@ function AdminPortalPage() {
                     <td style={{fontSize:12}}>{c.faculty}</td>
                     <td>{c.studentsCount || 0}</td>
                     <td>
-                      <button className="ap-act-btn edit" onClick={()=>alert(`Edit Course:\nCode: ${c.code}\nName: ${c.name}`)}>Edit</button>
-                      <button className="ap-act-btn del" onClick={()=>alert('Delete confirmation')}>Del</button>
+                      <button className="ap-act-btn edit" onClick={()=>openModal('editCourse', c)}>Edit</button>
+                      <button className="ap-act-btn del" onClick={async () => {
+                        if (window.confirm(`Delete Course ${c.code}?`)) {
+                          const res = await deleteAdminCourse(c._id || c.id);
+                          if (res && res.success) {
+                            setCourses(courses.filter(crs => crs._id !== c._id && crs.id !== c.id));
+                          } else {
+                            alert("Failed to delete course");
+                          }
+                        }
+                      }}>Del</button>
                     </td>
                   </tr>
                 ))}
@@ -2105,11 +2136,14 @@ function AdminPortalPage() {
     const isFaculty = modal.type === 'faculty';
     const isNotice = modal.type === 'notice';
     const isEvent = modal.type === 'event';
+    const isDepartment = modal.type === 'department' || modal.type === 'editDepartment';
+    const isCourse = modal.type === 'course' || modal.type === 'editCourse';
 
     const title = {
       student:'Add New Student', editStudent:'Edit Student', faculty:'Add New Faculty',
       notice:'Post Notice / Announcement', event:'Create Event',
-      course:'Add New Course', subject:'Create New Subject',
+      course:'Add New Course', editCourse:'Edit Course', subject:'Create New Subject',
+      department:'Add New Department', editDepartment:'Edit Department',
       admission:'New Application', addUser:'Add Admin User',
       uploadMarks:'Upload Marks', markAttendance:'Mark Attendance',
       timetable:'Create Timetable', exam:'Schedule Exam',
@@ -2183,6 +2217,46 @@ function AdminPortalPage() {
         alert('Event created!'); closeModal();
       } else {
         alert('Failed to create event');
+      }
+    };
+
+    const handleAddCourse = async () => {
+      if (!newCourse.code || !newCourse.name) { alert('Please fill required fields!'); return; }
+      let res;
+      if (modal.type === 'editCourse' && modal.data) {
+        res = await updateAdminCourse(modal.data._id || modal.data.id, newCourse);
+      } else {
+        res = await addAdminCourse(newCourse);
+      }
+      if (res && !res.error) {
+        if (modal.type === 'editCourse') {
+          setCourses(courses.map(c => (c._id === res._id || c.id === res.id) ? res : c));
+        } else {
+          setCourses([...courses, res]);
+        }
+        alert(`Course ${modal.type === 'editCourse' ? 'updated' : 'added'}!`); closeModal();
+      } else {
+        alert('Failed to save course');
+      }
+    };
+
+    const handleAddDepartment = async () => {
+      if (!newDepartment.name || !newDepartment.hod) { alert('Please fill required fields!'); return; }
+      let res;
+      if (modal.type === 'editDepartment' && modal.data) {
+        res = await updateAdminDepartment(modal.data._id || modal.data.id, newDepartment);
+      } else {
+        res = await addAdminDepartment(newDepartment);
+      }
+      if (res && !res.error) {
+        if (modal.type === 'editDepartment') {
+          setDepartments(departments.map(d => (d._id === res._id || d.id === res.id) ? res : d));
+        } else {
+          setDepartments([...departments, res]);
+        }
+        alert(`Department ${modal.type === 'editDepartment' ? 'updated' : 'added'}!`); closeModal();
+      } else {
+        alert('Failed to save department');
       }
     };
 
@@ -2279,14 +2353,44 @@ function AdminPortalPage() {
                 <div className="ap-form-group"><label>Status</label><select style={inp} value={newEvent.status} onChange={e=>setNewEvent({...newEvent,status:e.target.value})}><option>Upcoming</option><option>Ongoing</option><option>Completed</option></select></div>
               </>
             )}
-            {!isStudent && !isFaculty && !isNotice && !isEvent && (
+            {isDepartment && (
+              <>
+                <div className="ap-form-row">
+                  <div className="ap-form-group"><label>Department Name *</label><input type="text" placeholder="e.g. Computer Science" style={inp} value={newDepartment.name} onChange={e=>setNewDepartment({...newDepartment,name:e.target.value})}/></div>
+                  <div className="ap-form-group"><label>HOD Name *</label><input type="text" placeholder="HOD Name" style={inp} value={newDepartment.hod} onChange={e=>setNewDepartment({...newDepartment,hod:e.target.value})}/></div>
+                </div>
+                <div className="ap-form-row">
+                  <div className="ap-form-group"><label>Icon (Emoji/Text)</label><input type="text" placeholder="🏛️" style={inp} value={newDepartment.icon} onChange={e=>setNewDepartment({...newDepartment,icon:e.target.value})}/></div>
+                  <div className="ap-form-group"><label>Theme Color</label><input type="color" style={{...inp, height: '42px', padding: '0 4px'}} value={newDepartment.color} onChange={e=>setNewDepartment({...newDepartment,color:e.target.value})}/></div>
+                </div>
+                <div className="ap-form-group"><label>Accreditation</label><input type="text" placeholder="e.g. NAAC A++ (Valid till 2027)" style={inp} value={newDepartment.accreditation} onChange={e=>setNewDepartment({...newDepartment,accreditation:e.target.value})}/></div>
+              </>
+            )}
+            {isCourse && (
+              <>
+                <div className="ap-form-row">
+                  <div className="ap-form-group"><label>Course Code *</label><input type="text" placeholder="e.g. CS101" style={inp} value={newCourse.code} onChange={e=>setNewCourse({...newCourse,code:e.target.value})}/></div>
+                  <div className="ap-form-group"><label>Course Name *</label><input type="text" placeholder="e.g. Data Structures" style={inp} value={newCourse.name} onChange={e=>setNewCourse({...newCourse,name:e.target.value})}/></div>
+                </div>
+                <div className="ap-form-row">
+                  <div className="ap-form-group"><label>Department</label><select style={inp} value={newCourse.dept} onChange={e=>setNewCourse({...newCourse,dept:e.target.value})}>{['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}</select></div>
+                  <div className="ap-form-group"><label>Semester</label><input type="number" min={1} max={8} style={inp} value={newCourse.sem} onChange={e=>setNewCourse({...newCourse,sem:parseInt(e.target.value)||1})}/></div>
+                </div>
+                <div className="ap-form-row">
+                  <div className="ap-form-group"><label>Credits</label><input type="number" min={1} style={inp} value={newCourse.credits} onChange={e=>setNewCourse({...newCourse,credits:parseInt(e.target.value)||3})}/></div>
+                  <div className="ap-form-group"><label>Type</label><select style={inp} value={newCourse.type} onChange={e=>setNewCourse({...newCourse,type:e.target.value})}><option>Core</option><option>Elective</option><option>Lab</option></select></div>
+                </div>
+                <div className="ap-form-group"><label>Faculty Assigned</label><input type="text" placeholder="Faculty name" style={inp} value={newCourse.faculty} onChange={e=>setNewCourse({...newCourse,faculty:e.target.value})}/></div>
+              </>
+            )}
+            {!isStudent && !isFaculty && !isNotice && !isEvent && !isDepartment && !isCourse && (
               <div className="ap-empty"><div className="ap-empty-icon"></div><p>Form for <strong>{title}</strong>  action logged successfully.<br/><span style={{fontSize:12,color:'#94a3b8'}}>Full implementation available in production build.</span></p></div>
             )}
           </div>
           <div className="ap-modal-footer">
             <button className="ap-btn ghost" onClick={closeModal}>Cancel</button>
-            <button className="ap-btn gold" onClick={isStudent ? handleAddStudent : isFaculty ? handleAddFaculty : isNotice ? handleAddNotice : isEvent ? handleAddEvent : () => { alert(`${title} action completed!`); closeModal(); }}>
-              {isStudent ? 'Add Student' : isFaculty ? 'Add Faculty' : isNotice ? 'Post Notice' : isEvent ? 'Create Event' : 'Save'}
+            <button className="ap-btn gold" onClick={isStudent ? handleAddStudent : isFaculty ? handleAddFaculty : isNotice ? handleAddNotice : isEvent ? handleAddEvent : isDepartment ? handleAddDepartment : isCourse ? handleAddCourse : () => { alert(`${title} action completed!`); closeModal(); }}>
+              {isStudent ? (modal.type==='editStudent'?'Update Student':'Add Student') : isFaculty ? 'Add Faculty' : isNotice ? 'Post Notice' : isEvent ? 'Create Event' : isDepartment ? (modal.type==='editDepartment'?'Update Department':'Add Department') : isCourse ? (modal.type==='editCourse'?'Update Course':'Add Course') : 'Save'}
             </button>
           </div>
         </div>

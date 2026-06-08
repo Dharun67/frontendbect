@@ -715,6 +715,41 @@ export const getAdminDepartments = async () => {
   }
 };
 
+export const addAdminDepartment = async (departmentData) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/departments`, {
+      method: 'POST',
+      body: JSON.stringify(departmentData),
+    });
+    return await res.json();
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+export const updateAdminDepartment = async (id, departmentData) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/departments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(departmentData),
+    });
+    return await res.json();
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+export const deleteAdminDepartment = async (id) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/departments/${id}`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
 export const getAdminCourses = async () => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/admin/courses`);
@@ -722,6 +757,41 @@ export const getAdminCourses = async () => {
     return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
+  }
+};
+
+export const addAdminCourse = async (courseData) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/courses`, {
+      method: 'POST',
+      body: JSON.stringify(courseData),
+    });
+    return await res.json();
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+export const updateAdminCourse = async (id, courseData) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/courses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(courseData),
+    });
+    return await res.json();
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+export const deleteAdminCourse = async (id) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/courses/${id}`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch (error) {
+    return { error: error.message };
   }
 };
 
