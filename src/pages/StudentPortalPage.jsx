@@ -148,7 +148,7 @@ function StudentPortalPage() {
       } finally {
         setIsLoading(false);
       }
-    };0
+    };
     init();
   }, [navigate]);
 
