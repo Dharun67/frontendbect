@@ -13,6 +13,19 @@ export const AppProvider = ({ children }) => {
   const [sessionUser, setSessionUser] = useState(null);
   const [sessionType, setSessionType] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+    if (isDarkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     // Wake up backend and check for an active MongoDB session on app load
@@ -40,7 +53,7 @@ export const AppProvider = ({ children }) => {
   };
 
   return (
-    <AppContext.Provider value={{ sessionUser, setSessionUser, sessionType, setSessionType, loading, logout }}>
+    <AppContext.Provider value={{ sessionUser, setSessionUser, sessionType, setSessionType, loading, logout, isDarkMode, setIsDarkMode }}>
       {children}
     </AppContext.Provider>
   );

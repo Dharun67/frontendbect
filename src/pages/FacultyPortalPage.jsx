@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import clgLogo from '../assets/images/CLGLOGO.png';
+import clgLogo from '../assets/images/CLGLOGO.webp';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
   getSessionUser, logoutUser, getStudents, getFacultyAssignments,
   saveClassAttendance, saveStudentMarks, uploadFacultyAssignment,
@@ -11,36 +12,8 @@ import {
 import '../assets/css/faculty-portal.css';
 
 /* ─────────────── static data ─────────────── */
-const COURSES = [
-  { id: 'c1', code: 'CS3351', name: 'Data Structures',         cls: '21CS-A', sem: 5, credits: 4, students: 60, classes: 24, done: 18, pct: 75 },
-  { id: 'c2', code: 'CS3351', name: 'Data Structures',         cls: '21CS-B', sem: 5, credits: 4, students: 58, classes: 22, done: 15, pct: 68 },
-  { id: 'c3', code: 'CS3352', name: 'DS Lab',                  cls: '21CS-A', sem: 5, credits: 2, students: 60, classes: 10, done:  9, pct: 90 },
-];
-
-const SCHEDULE = [
-  { time: '09:00 AM', subject: 'Data Structures',  section: '21CS-A', room: 'Room 301', type: 'Theory' },
-  { time: '11:00 AM', subject: 'Data Structures',  section: '21CS-B', room: 'Room 204', type: 'Theory' },
-  { time: '02:00 PM', subject: 'DS Lab',           section: '21CS-A', room: 'Lab 101',  type: 'Lab' },
-  { time: '04:00 PM', subject: 'Staff Meeting',    section: '—',       room: 'Conf. Room', type: 'Admin' },
-];
-
-const WEEKLY_TIMETABLE = {
-  Mon: ['CS3351 / 21CS-A', 'CS3351 / 21CS-A', '—', 'Lunch', 'CS3351 / 21CS-B', 'CS3351 / 21CS-B', '—'],
-  Tue: ['CS3351 / 21CS-B', '—', 'CS3352 Lab', 'Lunch', 'CS3352 Lab', 'CS3352 Lab', '—'],
-  Wed: ['—', 'CS3351 / 21CS-A', 'CS3351 / 21CS-A', 'Lunch', '—', 'CS3351 / 21CS-B', '—'],
-  Thu: ['CS3351 / 21CS-B', 'CS3351 / 21CS-B', '—', 'Lunch', 'CS3352 Lab', 'CS3352 Lab', 'CS3352 Lab'],
-  Fri: ['CS3351 / 21CS-A', '—', 'CS3351 / 21CS-A', 'Lunch', 'CS3351 / 21CS-B', '—', '—'],
-};
 const TIME_SLOTS = ['8:00–9:00', '9:00–10:00', '10:00–11:00', 'Lunch', '1:00–2:00', '2:00–3:00', '3:00–4:00'];
 
-
-
-const SENT_MESSAGES = [
-  { title: 'IA 2 Schedule Reminder',     to: '21CS-A + 21CS-B', date: 'June 1, 2025' },
-  { title: 'Assignment 3 Uploaded',      to: 'All My Students',  date: 'May 28, 2025' },
-  { title: 'Low Attendance Warning',     to: '21CS-B',           date: 'May 20, 2025' },
-  { title: 'Lab Viva Date Announcement', to: 'All My Students',  date: 'May 12, 2025' },
-];
 
 
 
@@ -84,7 +57,7 @@ export default function FacultyPortalPage() {
   const [attDate, setAttDate]         = useState(new Date().toISOString().split('T')[0]);
   const [attData, setAttData]         = useState([]);
   const [msgForm, setMsgForm]         = useState({ to: 'All My Students', subject: '', message: '' });
-  const [sentMessages, setSentMessages] = useState(SENT_MESSAGES);
+  const [sentMessages, setSentMessages] = useState([]);
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [notif, setNotif]             = useState({ show: false, text: '', type: 'success' });
   const [profileEdit, setProfileEdit] = useState(false);
@@ -112,14 +85,14 @@ export default function FacultyPortalPage() {
       setProfileForm({
         name: loggedFaculty.name || '',
         empId: loggedFaculty.empId || '',
-        dept: loggedFaculty.dept || 'CSE',
-        designation: loggedFaculty.designation || 'Professor',
-        qualification: loggedFaculty.qualification || 'Ph.D',
-        experience: loggedFaculty.experience || '12 Years',
+        dept: loggedFaculty.dept || '',
+        designation: loggedFaculty.designation || '',
+        qualification: loggedFaculty.qualification || '',
+        experience: loggedFaculty.experience || '',
         email: loggedFaculty.email || '',
         phone: loggedFaculty.phone || '',
-        specialization: loggedFaculty.specialization || 'Algorithms & Data Structures',
-        joiningDate: loggedFaculty.joiningDate || 'June 1, 2013',
+        specialization: loggedFaculty.specialization || '',
+        joiningDate: loggedFaculty.joiningDate || '',
       });
       try {
         const [students, assignList, leaves, allCourses, timetable] = await Promise.all([
@@ -144,17 +117,15 @@ export default function FacultyPortalPage() {
           id: c._id || `c-${i}`,
           code: c.code,
           name: c.name,
-          cls: i % 2 === 0 ? '21CS-A' : '21CS-B',
+          cls: c.cls || (i % 2 === 0 ? '21CS-A' : '21CS-B'), // section not in DB schema yet
           sem: c.sem,
           credits: c.credits,
-          students: c.studentsCount || (i % 2 === 0 ? 60 : 58),
-          classes: c.type === 'Lab' ? 10 : 24,
-          done: c.type === 'Lab' ? 9 : 18,
-          pct: c.type === 'Lab' ? 90 : 75
+          students: c.studentsCount || 0,
+          classes: c.classesTotal || 0,
+          done: c.classesCompleted || 0,
+          pct: 0
         }));
         setCourses(mappedCourses);
-
-        // Map Timetable
         const mappedTimetable = {};
         if (timetable && timetable.length > 0) {
           timetable.forEach(item => {
@@ -165,18 +136,15 @@ export default function FacultyPortalPage() {
           });
           setWeeklyTimetable(mappedTimetable);
         } else {
-          setWeeklyTimetable(WEEKLY_TIMETABLE);
+          setWeeklyTimetable({});
         }
-
-        // Today's schedule
         const getTodaySchedule = (timetableList) => {
-          if (!timetableList || timetableList.length === 0) return SCHEDULE;
+          if (!timetableList || timetableList.length === 0) return [];
           const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
           const todayName = days[new Date().getDay()];
           const dayName = (todayName === 'Sun' || todayName === 'Sat') ? 'Mon' : todayName;
           const daySchedule = timetableList.find(d => d.day === dayName);
-          if (!daySchedule) return SCHEDULE;
-
+          if (!daySchedule) return [];
           const timeSlots = [
             "09:00 AM",
             "10:00 AM",
@@ -186,46 +154,19 @@ export default function FacultyPortalPage() {
             "03:00 PM",
             "04:00 PM"
           ];
-
-          const subjectMap = {
-            "DS": { name: "Data Structures", room: "Room 301", type: "Theory" },
-            "OS": { name: "Operating Systems", room: "Room 204", type: "Theory" },
-            "DBMS": { name: "Database Management Systems", room: "Room 301", type: "Theory" },
-            "CN": { name: "Computer Networks", room: "Room 301", type: "Theory" },
-            "SE": { name: "Software Engineering", room: "Room 204", type: "Theory" },
-            "DBMS Lab": { name: "DBMS Laboratory", room: "Systems Lab II", type: "Lab" },
-            "CN Lab": { name: "Computer Networks Lab", room: "Networks Lab I", type: "Lab" },
-            "WT": { name: "Web Technologies", room: "Room 302", type: "Theory" },
-            "Cloud": { name: "Cloud Computing", room: "Room 302", type: "Theory" },
-            "DA": { name: "Data Analytics", room: "Room 302", type: "Theory" },
-            "ST": { name: "Software Testing", room: "Room 302", type: "Theory" },
-            "Web Lab": { name: "Web Lab", room: "Systems Lab I", type: "Lab" },
-            "Cloud Lab": { name: "Cloud Lab", room: "Systems Lab II", type: "Lab" },
-            "VLSI": { name: "VLSI Design", room: "Room 201", type: "Theory" },
-            "DSP": { name: "Digital Signal Processing", room: "Room 201", type: "Theory" },
-            "Comm": { name: "Communication Theory", room: "Room 201", type: "Theory" },
-            "Control": { name: "Control Systems", room: "Room 202", type: "Theory" },
-            "Microproc": { name: "Microprocessors", room: "Room 202", type: "Theory" },
-            "VLSI Lab": { name: "VLSI Lab", room: "Lab 101", type: "Lab" },
-            "DSP Lab": { name: "DSP Lab", room: "Lab 102", type: "Lab" }
-          };
-
           return daySchedule.slots.map((slot, i) => {
             if (slot === 'Lunch' || slot === '—') return null;
-            const subInfo = subjectMap[slot] || { name: slot, room: "TBA", type: "Theory" };
             return {
               time: timeSlots[i],
-              subject: subInfo.name,
+              subject: slot,
               section: i % 2 === 0 ? '21CS-A' : '21CS-B',
-              room: subInfo.room,
-              type: subInfo.type
+              room: "Assigned Room",
+              type: "Theory"
             };
           }).filter(Boolean);
         };
-
         const derivedSchedule = getTodaySchedule(timetable);
         setTodaySchedule(derivedSchedule);
-
       } catch (err) {
         console.error('Error loading faculty portal data:', err);
       } finally {
@@ -234,7 +175,6 @@ export default function FacultyPortalPage() {
     };
     init();
   }, [navigate]);
-
   // Update marks data when selected course changes
   useEffect(() => {
     const courseCode = marksCourse.split('/')[0].trim();
@@ -308,8 +248,8 @@ export default function FacultyPortalPage() {
 
   const facultyName        = facultyData.name        || 'Dr. Faculty';
   const facultyEmpId       = facultyData.empId       || 'FAC-001';
-  const facultyDept        = facultyData.dept        || 'CSE';
-  const facultyDesignation = facultyData.designation || 'Professor';
+  const facultyDept        = facultyData.dept        || '';
+  const facultyDesignation = facultyData.designation || '';
   const initials           = facultyName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const deptFull = { CSE: 'Computer Science & Engineering', ECE: 'Electronics & Communication', Mech: 'Mechanical Engineering', Civil: 'Civil Engineering', IT: 'Information Technology' };
 
@@ -643,11 +583,32 @@ export default function FacultyPortalPage() {
                 </div>
 
                 {/* Attendance Overview */}
-                <div className="fp-card">
+                <div className="fp-card" style={{ gridColumn: '1 / -1' }}>
                   <div className="fp-card-header">
                     <h3 className="fp-card-title">Class Attendance Overview</h3>
                   </div>
-                  <table className="fp-table">
+                  <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1, height: '300px' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={courses.map(c => {
+                            const sect = facultyStudents.filter(s => s.cls === c.cls);
+                            const avg = sect.length ? Math.round(sect.reduce((a, s) => a + s.att, 0) / sect.length) : 0;
+                            return { name: c.name, avgAtt: avg };
+                          })}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                          <XAxis dataKey="name" />
+                          <YAxis domain={[0, 100]} />
+                          <Tooltip cursor={{ fill: 'transparent' }} />
+                          <Legend />
+                          <Bar dataKey="avgAtt" fill="#3b82f6" name="Average Attendance (%)" radius={[4, 4, 0, 0]} barSize={40} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <table className="fp-table">
                     <thead>
                       <tr><th>Course</th><th>Section</th><th>Avg Att.</th><th>At Risk</th></tr>
                     </thead>
@@ -666,6 +627,8 @@ export default function FacultyPortalPage() {
                       })}
                     </tbody>
                   </table>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Recent Assignments */}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import clgLogo from '../../assets/images/CLGLOGO.png';
+import clgLogo from '../../assets/images/CLGLOGO.webp';
 
 function Footer() {
   return (

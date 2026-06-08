@@ -3,7 +3,7 @@ import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import { initializeDefaultData, submitAdmissionsEnquiry } from '../utils/storage';
 import '../assets/css/professional.css';
-import principalImg from '../assets/images/principal.jpg';
+import principalImg from '../assets/images/principal.webp';
 
 /* ─── Animated Counter Hook ─────────────────────────────── */
 function useCounter(target, duration = 2000, start = false) {

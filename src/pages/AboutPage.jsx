@@ -3,7 +3,7 @@ import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import '../assets/css/style.css';
 import '../assets/css/aboutpage.css';
-import principalImg from '../assets/images/principal.jpg';
+import principalImg from '../assets/images/principal.webp';
 
 function AboutPage() {
   const [timelineFilter, setTimelineFilter] = useState('all');

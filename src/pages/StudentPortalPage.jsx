@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import clgLogo from '../assets/images/CLGLOGO.png';
+import clgLogo from '../assets/images/CLGLOGO.webp';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getSessionUser, logoutUser, getAttendance, getFees, getTimetable, getAssignments, getNotifications, getResults, submitAssignment, payFeesOnline, submitLeaveApplication, getLeaveApplications, getStudentHallTicket, uploadStudentPhoto, getNotices, getAdminSubjects, getAdminBooks, getPlacements, getAdminTransportRoutes, getAdminHostelAllocations, getStudentComplaints, createStudentComplaint, getStudentCertificates, createCertificateRequest } from '../utils/storage';
 import '../assets/css/student-portal.css';
 
@@ -99,7 +100,7 @@ function StudentPortalPage() {
           getNotifications(rollNo),
           getResults(rollNo),
           getLeaveApplications(rollNo),
-          getTimetable(student.dept, student.sem || 5),
+          getTimetable(student.dept, student.sem || ''),
           getNotices(),
           getAdminSubjects(),
           getAdminBooks(),
@@ -166,16 +167,16 @@ function StudentPortalPage() {
   );
   if (!studentData) return null;
 
-  const studentName = studentData.name || 'Student Name';
-  const studentRoll = studentData.roll || '21CS001';
-  const studentDept = studentData.dept || 'CSE';
-  const studentSem = studentData.sem || 5;
-  const studentEmail = studentData.email || 'student@bec.edu.in';
+  const studentName = studentData.name || '';
+  const studentRoll = studentData.roll || '';
+  const studentDept = studentData.dept || '';
+  const studentSem = studentData.sem || '';
+  const studentEmail = studentData.email || '';
   const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-  const overallAttendance = attendanceData ? attendanceData.overall : 82;
-  const cgpaVal = resultsData ? ((resultsData.sem3?.gpa + resultsData.sem4?.gpa) / 2).toFixed(2) : '8.35';
-  const feeDue = feesData ? feesData.due : 12500;
+  const overallAttendance = attendanceData ? attendanceData.overall : 0;
+  const cgpaVal = resultsData ? ((resultsData.sem3?.gpa + resultsData.sem4?.gpa) / 2).toFixed(2) : 'N/A';
+  const feeDue = feesData ? feesData.due : 0;
   const pendingAssignments = assignmentsData.filter(a => a.status === 'pending').length;
 
   // Timetable dashboard classes extractor
@@ -198,56 +199,22 @@ function StudentPortalPage() {
       "04:00 - 05:00 PM"
     ];
     
-    const subjectInstructorMap = {
-      "DS": { name: "Data Structures", room: "Room 301", faculty: "Dr. Ramesh Kumar" },
-      "OS": { name: "Operating Systems", room: "Room 204", faculty: "Dr. Anand Mohan" },
-      "DBMS": { name: "Database Management Systems", room: "Room 301", faculty: "Dr. Priya Nair" },
-      "CN": { name: "Computer Networks", room: "Room 301", faculty: "Prof. Kumar Raj" },
-      "SE": { name: "Software Engineering", room: "Room 204", faculty: "Dr. Anand Mohan" },
-      "DBMS Lab": { name: "DBMS Laboratory", room: "Systems Lab II", faculty: "Dr. Priya Nair" },
-      "CN Lab": { name: "Computer Networks Lab", room: "Networks Lab I", faculty: "Prof. Kumar Raj" },
-      "WT": { name: "Web Technologies", room: "Room 302", faculty: "Dr. Priya Nair" },
-      "Cloud": { name: "Cloud Computing", room: "Room 302", faculty: "Dr. Deepa S" },
-      "DA": { name: "Data Analytics", room: "Room 302", faculty: "Dr. Deepa S" },
-      "ST": { name: "Software Testing", room: "Room 302", faculty: "Dr. Deepa S" },
-      "Web Lab": { name: "Web Lab", room: "Systems Lab I", faculty: "Dr. Priya Nair" },
-      "Cloud Lab": { name: "Cloud Lab", room: "Systems Lab II", faculty: "Dr. Deepa S" },
-      "VLSI": { name: "VLSI Design", room: "Room 201", faculty: "Dr. Anand Rajan" },
-      "DSP": { name: "Digital Signal Processing", room: "Room 201", faculty: "Dr. Kavitha P" },
-      "Comm": { name: "Communication Theory", room: "Room 201", faculty: "Dr. Kavitha P" },
-      "Control": { name: "Control Systems", room: "Room 202", faculty: "Dr. Anand Rajan" },
-      "Microproc": { name: "Microprocessors", room: "Room 202", faculty: "Dr. Kavitha P" },
-      "VLSI Lab": { name: "VLSI Lab", room: "Lab 101", faculty: "Dr. Anand Rajan" },
-      "DSP Lab": { name: "DSP Lab", room: "Lab 102", faculty: "Dr. Kavitha P" }
-    };
-    
     return daySchedule.slots.map((slot, i) => {
       if (slot === 'Lunch' || slot === '—') return null;
-      const subInfo = subjectInstructorMap[slot] || { name: slot, room: "TBA", faculty: advisorName };
       return {
         time: timeSlots[i],
-        subject: subInfo.name,
-        instructor: subInfo.faculty,
-        room: subInfo.room
+        subject: slot, // Directly showing what the DB provides
+        instructor: "Assigned Faculty", // DB doesn't have instructor mapping currently
+        room: "Assigned Room" // DB doesn't have room mapping currently
       };
     }).filter(Boolean);
   };
 
   // Issued Books list derived from DB
   const getIssuedBooks = () => {
-    if (!booksData || booksData.length === 0) return [];
-    const myDeptBooks = booksData.filter(b => b.dept === studentDept);
-    return myDeptBooks.slice(0, 2).map((book, i) => {
-      const issueDate = `2026-05-${15 + i * 5}`;
-      const dueDate = `2026-06-${14 + i * 5}`;
-      return {
-        title: book.title,
-        author: book.author,
-        bookId: book.bookId,
-        issued: issueDate,
-        due: dueDate
-      };
-    });
+    // There are no issued books recorded in DB for students right now.
+    // Return empty array to represent reality
+    return [];
   };
 
   // Curriculum courses from DB
@@ -258,21 +225,9 @@ function StudentPortalPage() {
 
   // Syllabus generator helper
   const getSyllabusModules = (subName) => {
-    const fallback = {
-      'Data Structures': ['Module 1: Linear Data Structures - Stacks and Queues', 'Module 2: Non-Linear Structures - Trees and Binary Search Trees', 'Module 3: Graphs and Networks Algorithms', 'Module 4: Searching, Sorting and Hash Tables', 'Module 5: Dynamic Programming & Greedy Approaches'],
-      'Operating Systems': ['Module 1: Introduction & System Architectures', 'Module 2: Process Scheduling & Mutexes', 'Module 3: Deadlocks and Concurrency Control', 'Module 4: Memory Management & Paging Systems', 'Module 5: Storage & File Management Policies'],
-      'DBMS': ['Module 1: Database System Concepts & ER Modelling', 'Module 2: Relational Query Languages & Algebra', 'Module 3: SQL Triggers, Functions and Procedures', 'Module 4: Transaction Isolation & ACID Protocols', 'Module 5: Database Recovery & Index Optimization'],
-      'Computer Networks': ['Module 1: Layered Network Architecture & Physical Layer', 'Module 2: Data Link Layer Protocols & MAC Addressing', 'Module 3: IP Addressing & Routing Protocols', 'Module 4: Transport Layer Protocols (TCP and UDP)', 'Module 5: Application Layer - DNS, HTTP, SMTP'],
-      'Software Engineering': ['Module 1: Software Process Models (Waterfall, Agile)', 'Module 2: Requirement Analysis & Specification', 'Module 3: Architectural Design & Design Patterns', 'Module 4: Testing Methodologies (White Box, Black Box)', 'Module 5: Project Risk & DevOps Systems']
-    };
-    if (fallback[subName]) return fallback[subName];
-    return [
-      `Module 1: Fundamental Concepts in ${subName}`,
-      `Module 2: Core Architectures and Systems of ${subName}`,
-      `Module 3: Practice and Lab Methodologies in ${subName}`,
-      `Module 4: Advanced Optimizations in ${subName}`,
-      `Module 5: Modern Trends and Future Scope of ${subName}`
-    ];
+    // If DB provided syllabus, we would return it here. 
+    // Currently, there's no syllabus field in the subjects DB schema.
+    return [];
   };
 
   const handleFileChange = (e) => {
@@ -763,7 +718,7 @@ function StudentPortalPage() {
                     <div class="detail-row" style="font-size: 12px; font-weight: bold; color: #1e3a8a; margin-bottom: 6px;">${student.name}</div>
                     <div class="detail-row"><span>Roll No:</span> ${student.roll}</div>
                     <div class="detail-row"><span>Branch:</span> B.E. ${student.dept}</div>
-                    <div class="detail-row"><span>Blood Group:</span> ${student.bloodGroup || 'O+'}</div>
+                    <div class="detail-row"><span>Blood Group:</span> ${student.bloodGroup || ''}</div>
                     <div class="detail-row"><span>Validity:</span> 2023 - 2027</div>
                   </div>
                 </div>
@@ -1084,6 +1039,34 @@ function StudentPortalPage() {
                 </div>
               </div>
 
+              <div className="dashboard-grid" style={{ marginBottom: '20px' }}>
+                <div className="dashboard-card" style={{ gridColumn: '1 / -1', height: '350px' }}>
+                  <div className="card-header">
+                    <h3>Academic Performance Trend</h3>
+                  </div>
+                  <div className="card-body" style={{ height: '280px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={[
+                          { semester: 'Sem 1', gpa: 8.4 },
+                          { semester: 'Sem 2', gpa: 8.8 },
+                          { semester: 'Sem 3', gpa: resultsData?.sem3?.gpa || 0 },
+                          { semester: 'Sem 4', gpa: resultsData?.sem4?.gpa || 0 },
+                        ]}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                        <XAxis dataKey="semester" />
+                        <YAxis domain={[0, 10]} />
+                        <Tooltip cursor={{ fill: 'transparent' }} />
+                        <Legend />
+                        <Bar dataKey="gpa" fill="#1e3a5f" name="GPA" radius={[4, 4, 0, 0]} barSize={40} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
               <div className="dashboard-grid">
                 <div className="dashboard-card">
                   <div className="card-header">
@@ -1259,16 +1242,16 @@ function StudentPortalPage() {
 
                 <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '15px' }}>Contact Information</h3>
                 <div className="info-grid" style={{ marginBottom: '30px' }}>
-                  <div className="info-field"><label>Personal Mobile</label><p>{studentData.phone || '+91 98765 43210'}</p></div>
-                  <div className="info-field"><label>Emergency Contact</label><p>{studentData.parentPhone || '+91 98765 00001'}</p></div>
-                  <div className="info-field"><label>Residential Address</label><p>{studentData.address || '12, Anna Nagar Main Road, Chennai, Tamil Nadu - 600 040'}</p></div>
+                  <div className="info-field"><label>Personal Mobile</label><p>{studentData.phone || ''}</p></div>
+                  <div className="info-field"><label>Emergency Contact</label><p>{studentData.parentPhone || ''}</p></div>
+                  <div className="info-field"><label>Residential Address</label><p>{studentData.address || ''}</p></div>
                 </div>
 
                 <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '15px' }}>Parent/Guardian Details</h3>
                 <div className="info-grid">
-                  <div className="info-field"><label>Guardian Name</label><p>{studentData.parentName || 'Ramesh Kumar S.'}</p></div>
+                  <div className="info-field"><label>Guardian Name</label><p>{studentData.parentName || ''}</p></div>
                   <div className="info-field"><label>Relation</label><p>Father</p></div>
-                  <div className="info-field"><label>Guardian Contact</label><p>{studentData.parentPhone || '+91 98765 00001'}</p></div>
+                  <div className="info-field"><label>Guardian Contact</label><p>{studentData.parentPhone || ''}</p></div>
                 </div>
               </div>
             </div>

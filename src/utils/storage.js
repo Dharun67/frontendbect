@@ -3,9 +3,10 @@
 // No localStorage is used. The browser sends the session cookie automatically
 // on every request via `credentials: 'include'`.
 
-const API_BASE = process.env.REACT_APP_API_URL 
-  ? `${process.env.REACT_APP_API_URL}/api/portal`
-  : "http://localhost:5000/api/portal";
+const isProduction = process.env.NODE_ENV === "production";
+const backendUrl = process.env.REACT_APP_API_URL || (isProduction ? "https://backendbect.onrender.com" : "http://localhost:5000");
+
+const API_BASE = `${backendUrl}/api/portal`;
 
 // ==========================================
 // AUTHENTICATED FETCH HELPER
@@ -72,23 +73,37 @@ export const logoutUser = async () => {
 };
 
 /**
- * Legacy compatibility wrappers — these are now no-ops since the session
- * is managed server-side. The user data must be fetched from getSessionUser().
- * Kept so existing pages that call these functions don't break.
+ * Store user session info in sessionStorage for quick access
+ * The actual session is managed server-side via cookies
  */
-export const setLoggedInUser = () => {};  // Session is set on the backend at login
-export const getLoggedInUser = () => null; // Use getSessionUser() instead
-export const logout = logoutUser;          // Alias for backward compatibility
+export const setLoggedInUser = (type, user) => {
+  if (user) {
+    sessionStorage.setItem('userType', type);
+    sessionStorage.setItem('userData', JSON.stringify(user));
+  }
+};
+
+export const getLoggedInUser = () => {
+  const type = sessionStorage.getItem('userType');
+  const userData = sessionStorage.getItem('userData');
+  if (type && userData) {
+    return { type, user: JSON.parse(userData) };
+  }
+  return null;
+};
+
+export const logout = async () => {
+  await logoutUser();
+  sessionStorage.clear();
+};
 
 /**
  * Wake up the backend server on app load.
  */
 export const initializeDefaultData = async () => {
   try {
-    const healthUrl = process.env.REACT_APP_API_URL 
-      ? `${process.env.REACT_APP_API_URL}/health`
-      : "http://localhost:5000/health";
-    await fetch(healthUrl, { credentials: "include" });
+    const healthUrl = `${backendUrl}/health`;
+    await authenticatedFetch(healthUrl, { credentials: "include" });
   } catch (error) {
     console.warn("Backend server not reachable. Ensure server.js is running.");
   }
@@ -596,7 +611,7 @@ export const getAdmissionsEnquiries = async () => {
 
 export const submitAdmissionsEnquiry = async (enquiryData) => {
   try {
-    const res = await fetch(`${API_BASE}/public/enquiry`, {
+    const res = await authenticatedFetch(`${API_BASE}/public/enquiry`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -856,6 +871,18 @@ export const getStudentCertificates = async (rollNo) => {
     return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
+  }
+};
+
+export const updateStudentProfile = async (rollNo, profileData) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/student/profile/${rollNo}`, {
+      method: "PUT",
+      body: JSON.stringify(profileData),
+    });
+    return await res.json();
+  } catch (error) {
+    return { success: false };
   }
 };
 

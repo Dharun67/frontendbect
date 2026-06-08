@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
-import clgLogo from '../assets/images/CLGLOGO.png';
+import clgLogo from '../assets/images/CLGLOGO.webp';
 import { useForm } from '../hooks/useForm';
 import { FormInput, FormButton, FormMessage } from '../components/ui/FormComponents';
 import { verifyLogin } from '../utils/storage';

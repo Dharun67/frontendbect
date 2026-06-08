@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { useEffect } from 'react';
 import { initializeDefaultData } from './utils/storage';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   useEffect(() => {
@@ -11,8 +12,9 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppProvider>
+        <Toaster position="top-right" />
         <AppRoutes />
       </AppProvider>
     </BrowserRouter>

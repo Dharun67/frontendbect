@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import clgLogo from '../assets/images/CLGLOGO.png';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import clgLogo from '../assets/images/CLGLOGO.webp';
 import {
   getSessionUser, logoutUser,
   getAdminStudents, addAdminStudent, updateAdminStudent, deleteAdminStudent,
@@ -124,7 +125,11 @@ function AdminPortalPage() {
   const [complaints, setComplaints] = useState([]);
   const [allFees, setAllFees] = useState([]);
 
-  const [newStudent, setNewStudent] = useState({ name: '', roll: '', dept: 'CSE', email: '', phone: '', password: '', sem: 1, bloodGroup: 'O+', dob: '' });
+  const [newStudent, setNewStudent] = useState({ 
+    roll: '', name: '', email: '', password: '', phone: '', dob: '', gender: 'Male',
+    dept: 'CSE', sem: 1, bloodGroup: '', parentName: '', parentPhone: '', address: '',
+    religion: '', community: 'General', nationality: 'Indian', aadharNumber: ''
+  });
   const [newFaculty, setNewFaculty] = useState({ name: '', empId: '', dept: 'CSE', designation: 'Asst. Professor', email: '', phone: '', qualification: 'Ph.D', experience: '', specialization: '', password: '' });
   const [newNotice, setNewNotice] = useState({ title: '', content: '', category: 'General', type: 'general' });
   const [newEvent, setNewEvent] = useState({ title: '', description: '', date: '', venue: '', status: 'Upcoming' });
@@ -237,18 +242,30 @@ function AdminPortalPage() {
     setModal({ open: true, type, data });
     if (type === 'editStudent' && data) {
       setNewStudent({
-        name: data.name || '',
         roll: data.roll || '',
-        dept: data.dept || 'CSE',
+        name: data.name || '',
         email: data.email || '',
-        phone: data.phone || '',
         password: data.password || '',
+        phone: data.phone || '',
+        dob: data.dob || '',
+        gender: data.gender || 'Male',
+        dept: data.dept || '',
         sem: data.sem || 1,
-        bloodGroup: data.bloodGroup || 'O+',
-        dob: data.dob || ''
+        bloodGroup: data.bloodGroup || '',
+        parentName: data.parentName || '',
+        parentPhone: data.parentPhone || '',
+        address: data.address || '',
+        religion: data.religion || '',
+        community: data.community || 'General',
+        nationality: data.nationality || 'Indian',
+        aadharNumber: data.aadharNumber || ''
       });
     } else if (type === 'student') {
-      setNewStudent({ name: '', roll: '', dept: 'CSE', email: '', phone: '', password: '', sem: 1, bloodGroup: 'O+', dob: '' });
+      setNewStudent({ 
+        roll: '', name: '', email: '', password: '', phone: '', dob: '', gender: 'Male',
+        dept: 'CSE', sem: 1, bloodGroup: '', parentName: '', parentPhone: '', address: '',
+        religion: '', community: 'General', nationality: 'Indian', aadharNumber: ''
+      });
     }
   };
 
@@ -287,35 +304,53 @@ function AdminPortalPage() {
       </div>
 
       <div className="ap-dash-row">
-        <div className="ap-dash-box">
+        <div className="ap-dash-box" style={{ height: '350px' }}>
           <h4> Today's Attendance Summary</h4>
-          {[['CSE',1180,1200,98],['ECE',940,980,96],['Mech',800,850,94],['Civil',685,720,95],['IT',620,650,95],['Biotech',390,420,93]].map(([dept,pres,total,pct]) => (
-            <div className="ap-progress-row" key={dept}>
-              <span className="ap-progress-label">{dept}</span>
-              <div className="ap-progress-bar-wrap">
-                <div className="ap-progress-bar" style={{width:`${pct}%`,background:pct>=95?'#10b981':pct>=90?'#f59e0b':'#ef4444'}}/>
-              </div>
-              <span className="ap-progress-count">{pres}/{total}</span>
-              <span className="ap-progress-pct" style={{color:pct>=95?'#10b981':'#f59e0b',fontWeight:700}}>{pct}%</span>
-            </div>
-          ))}
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={[
+                { name: 'CSE', present: 1180, total: 1200 },
+                { name: 'ECE', present: 940, total: 980 },
+                { name: 'Mech', present: 800, total: 850 },
+                { name: 'Civil', present: 685, total: 720 },
+                { name: 'IT', present: 620, total: 650 },
+                { name: 'Biotech', present: 390, total: 420 },
+              ]}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="present" fill="#10b981" name="Present Students" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="total" fill="#e2e8f0" name="Total Students" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-        <div className="ap-dash-box">
-          <h4> Department-wise Fee Collection</h4>
-          <div className="ap-fee-bars">
-            {[['CSE',92,'11.2Cr'],['ECE',88,'8.8Cr'],['Mech',95,'9.5Cr'],['Civil',85,'6.8Cr'],['IT',90,'7.2Cr'],['Biotech',82,'4.1Cr']].map(([dept,pct,amt]) => (
-              <div className="ap-fee-bar-item" key={dept}>
-                <span className="ap-fee-bar-label">{dept}</span>
-                <div className="ap-bar-wrap"><div className="ap-bar" style={{width:`${pct}%`,background:pct>=90?'#10b981':pct>=85?'#f59e0b':'#ef4444'}}/></div>
-                <span className="ap-fee-bar-pct">{pct}%</span>
-                <span className="ap-fee-bar-amt">{amt}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{marginTop:14,padding:'10px 14px',background:'#f0fdf4',borderRadius:10,display:'flex',justifyContent:'space-between',alignItems:'center',border:'1px solid #bbf7d0'}}>
-            <span style={{fontWeight:600,fontSize:13,color:'#065f46'}}>Total Collection</span>
-            <span style={{fontWeight:800,color:'#059669',fontSize:16}}>47.6 Cr / 52.5 Cr</span>
-          </div>
+        <div className="ap-dash-box" style={{ height: '350px' }}>
+          <h4> Department-wise Fee Collection (Cr)</h4>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={[
+                { name: 'CSE', collected: 11.2, target: 12.0 },
+                { name: 'ECE', collected: 8.8, target: 10.0 },
+                { name: 'Mech', collected: 9.5, target: 10.0 },
+                { name: 'Civil', collected: 6.8, target: 8.0 },
+                { name: 'IT', collected: 7.2, target: 8.0 },
+                { name: 'Biotech', collected: 4.1, target: 4.5 },
+              ]}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="collected" fill="#3b82f6" name="Collected (Cr)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="target" fill="#e2e8f0" name="Target (Cr)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
@@ -2006,7 +2041,10 @@ function AdminPortalPage() {
     }[modal.type] || 'Action';
 
     const handleAddStudent = async () => {
-      if (!newStudent.name || !newStudent.roll || !newStudent.email || !newStudent.password) { alert('Please fill required fields!'); return; }
+      if (!newStudent.roll || !newStudent.name || !newStudent.email || !newStudent.password || !newStudent.phone || !newStudent.dob) { 
+        alert('Please fill all required fields (Roll, Name, Email, Phone, DOB, Password)!'); 
+        return; 
+      }
       if (modal.type === 'editStudent' && modal.data) {
         const res = await updateAdminStudent(modal.data._id || modal.data.id, newStudent);
         if (res && !res.error) {
@@ -2016,11 +2054,15 @@ function AdminPortalPage() {
           alert('Failed to update student');
         }
       } else {
-        const res = await addAdminStudent({ ...newStudent, status: 'Active' });
+        const res = await addAdminStudent({ ...newStudent, status: 'Active', profileCompleted: true });
         if (res && !res.error) {
           setStuData([...stuData, res]);
-          setNewStudent({ name:'', roll:'', dept:'CSE', email:'', phone:'', password:'', sem:1, bloodGroup:'O+', dob:'' });
-          alert('Student added successfully!'); closeModal();
+          setNewStudent({ 
+            roll: '', name: '', email: '', password: '', phone: '', dob: '', gender: 'Male',
+            dept: 'CSE', sem: 1, bloodGroup: '', parentName: '', parentPhone: '', address: '',
+            religion: '', community: 'General', nationality: 'Indian', aadharNumber: ''
+          });
+          alert('Student created successfully with complete profile!'); closeModal();
         } else {
           alert(res?.error || 'Failed to add student');
         }
@@ -2067,7 +2109,7 @@ function AdminPortalPage() {
 
     return (
       <div className="ap-modal open" onClick={e => { if(e.target.className.includes('ap-modal open')) closeModal(); }}>
-        <div className={`ap-modal-box${modal.type==='feeStructure'?' wide':''}`}>
+        <div className={`ap-modal-box${modal.type==='feeStructure' || isStudent?' wide':''}`}>
           <div className="ap-modal-head">
             <h4>{title}</h4>
             <button className="ap-modal-close" onClick={closeModal}></button>
@@ -2075,22 +2117,43 @@ function AdminPortalPage() {
           <div className="ap-modal-body">
             {isStudent && (
               <>
+                <h5 style={{fontSize:14,fontWeight:700,color:'#0f172a',marginBottom:12,borderBottom:'2px solid #f59e0b',paddingBottom:6}}>Basic Information</h5>
                 <div className="ap-form-row">
-                  <div className="ap-form-group"><label>Full Name *</label><input type="text" placeholder="Student full name" style={inp} value={newStudent.name} onChange={e=>setNewStudent({...newStudent,name:e.target.value})}/></div>
                   <div className="ap-form-group"><label>Roll Number *</label><input type="text" placeholder="e.g. 21CS007" style={inp} value={newStudent.roll} onChange={e=>setNewStudent({...newStudent,roll:e.target.value})}/></div>
+                  <div className="ap-form-group"><label>Full Name *</label><input type="text" placeholder="Student name" style={inp} value={newStudent.name} onChange={e=>setNewStudent({...newStudent,name:e.target.value})}/></div>
                 </div>
                 <div className="ap-form-row">
-                  <div className="ap-form-group"><label>Department</label><select style={inp} value={newStudent.dept} onChange={e=>setNewStudent({...newStudent,dept:e.target.value})}>{['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}</select></div>
-                  <div className="ap-form-group"><label>Semester</label><input type="number" min={1} max={8} placeholder="1-8" style={inp} value={newStudent.sem} onChange={e=>setNewStudent({...newStudent,sem:parseInt(e.target.value)||1})}/></div>
-                </div>
-                <div className="ap-form-group"><label>Email Address *</label><input type="email" placeholder="student@bec.edu.in" style={inp} value={newStudent.email} onChange={e=>setNewStudent({...newStudent,email:e.target.value})}/></div>
-                <div className="ap-form-row">
-                  <div className="ap-form-group"><label>Phone Number</label><input type="tel" placeholder="+91 XXXXX XXXXX" style={inp} value={newStudent.phone} onChange={e=>setNewStudent({...newStudent,phone:e.target.value})}/></div>
-                  <div className="ap-form-group"><label>Blood Group</label><select style={inp} value={newStudent.bloodGroup} onChange={e=>setNewStudent({...newStudent,bloodGroup:e.target.value})}>{['O+','O-','A+','A-','B+','B-','AB+','AB-'].map(b=><option key={b}>{b}</option>)}</select></div>
+                  <div className="ap-form-group"><label>Email *</label><input type="email" placeholder="student@bec.edu.in" style={inp} value={newStudent.email} onChange={e=>setNewStudent({...newStudent,email:e.target.value})}/></div>
+                  <div className="ap-form-group"><label>Phone *</label><input type="tel" placeholder="10-digit phone" style={inp} value={newStudent.phone} onChange={e=>setNewStudent({...newStudent,phone:e.target.value})}/></div>
                 </div>
                 <div className="ap-form-row">
-                  <div className="ap-form-group"><label>Date of Birth</label><input type="date" style={inp} value={newStudent.dob} onChange={e=>setNewStudent({...newStudent,dob:e.target.value})}/></div>
-                  <div className="ap-form-group"><label>Login Password *</label><input type="text" placeholder="Create password" style={inp} value={newStudent.password} onChange={e=>setNewStudent({...newStudent,password:e.target.value})}/></div>
+                  <div className="ap-form-group"><label>Date of Birth *</label><input type="date" style={inp} value={newStudent.dob} onChange={e=>setNewStudent({...newStudent,dob:e.target.value})}/></div>
+                  <div className="ap-form-group"><label>Gender *</label><select style={inp} value={newStudent.gender} onChange={e=>setNewStudent({...newStudent,gender:e.target.value})}><option>Male</option><option>Female</option><option>Other</option></select></div>
+                </div>
+                <div className="ap-form-row">
+                  <div className="ap-form-group"><label>Blood Group</label><select style={inp} value={newStudent.bloodGroup} onChange={e=>setNewStudent({...newStudent,bloodGroup:e.target.value})}><option value="">Select</option>{['A+','A-','B+','B-','O+','O-','AB+','AB-'].map(b=><option key={b}>{b}</option>)}</select></div>
+                  <div className="ap-form-group"><label>Aadhar Number</label><input type="text" placeholder="12-digit Aadhar" style={inp} value={newStudent.aadharNumber} onChange={e=>setNewStudent({...newStudent,aadharNumber:e.target.value})}/></div>
+                </div>
+                <h5 style={{fontSize:14,fontWeight:700,color:'#0f172a',marginTop:20,marginBottom:12,borderBottom:'2px solid #f59e0b',paddingBottom:6}}>Academic Details</h5>
+                <div className="ap-form-row">
+                  <div className="ap-form-group"><label>Department *</label><select style={inp} value={newStudent.dept} onChange={e=>setNewStudent({...newStudent,dept:e.target.value})}>{['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}</select></div>
+                  <div className="ap-form-group"><label>Semester *</label><input type="number" min={1} max={8} placeholder="1-8" style={inp} value={newStudent.sem} onChange={e=>setNewStudent({...newStudent,sem:parseInt(e.target.value)||1})}/></div>
+                </div>
+                <h5 style={{fontSize:14,fontWeight:700,color:'#0f172a',marginTop:20,marginBottom:12,borderBottom:'2px solid #f59e0b',paddingBottom:6}}>Parent/Guardian Details</h5>
+                <div className="ap-form-row">
+                  <div className="ap-form-group"><label>Parent Name</label><input type="text" placeholder="Parent/Guardian name" style={inp} value={newStudent.parentName} onChange={e=>setNewStudent({...newStudent,parentName:e.target.value})}/></div>
+                  <div className="ap-form-group"><label>Parent Phone</label><input type="tel" placeholder="Parent contact" style={inp} value={newStudent.parentPhone} onChange={e=>setNewStudent({...newStudent,parentPhone:e.target.value})}/></div>
+                </div>
+                <h5 style={{fontSize:14,fontWeight:700,color:'#0f172a',marginTop:20,marginBottom:12,borderBottom:'2px solid #f59e0b',paddingBottom:6}}>Additional Information</h5>
+                <div className="ap-form-row">
+                  <div className="ap-form-group"><label>Religion</label><input type="text" placeholder="Religion" style={inp} value={newStudent.religion} onChange={e=>setNewStudent({...newStudent,religion:e.target.value})}/></div>
+                  <div className="ap-form-group"><label>Community</label><select style={inp} value={newStudent.community} onChange={e=>setNewStudent({...newStudent,community:e.target.value})}><option>General</option><option>OBC</option><option>SC</option><option>ST</option></select></div>
+                </div>
+                <div className="ap-form-group"><label>Address</label><textarea placeholder="Full residential address" style={{...inp,minHeight:60,resize:'vertical'}} value={newStudent.address} onChange={e=>setNewStudent({...newStudent,address:e.target.value})}/></div>
+                <h5 style={{fontSize:14,fontWeight:700,color:'#0f172a',marginTop:20,marginBottom:12,borderBottom:'2px solid #f59e0b',paddingBottom:6}}>Login Credentials</h5>
+                <div className="ap-form-group"><label>Login Password *</label><input type="text" placeholder="Create password" style={inp} value={newStudent.password} onChange={e=>setNewStudent({...newStudent,password:e.target.value})}/></div>
+                <div style={{background:'#dcfce7',border:'1px solid #86efac',padding:'12px',borderRadius:'8px',fontSize:'13px',color:'#14532d',marginTop:'16px'}}>
+                  <strong>✓ Complete Profile:</strong> All student information will be managed by admin. No dummy data will be shown.
                 </div>
               </>
             )}

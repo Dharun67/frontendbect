@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import clgLogo from '../../assets/images/CLGLOGO.png';
+import clgLogo from '../../assets/images/CLGLOGO.webp';
 
 function Navbar() {
   const { pathname } = useLocation();
