@@ -1523,6 +1523,26 @@ function StudentPortalPage() {
               <h2 className="page-title">Exams &amp; Performance Sheets</h2>
               
               <h3 style={{ fontSize: '16.5px', fontWeight: '700', marginBottom: '15px' }}>Terminal Semesters GPA Roster</h3>
+              
+              {resultsData && Object.keys(resultsData).length > 0 && (
+                <div className="dashboard-card" style={{ marginBottom: '20px', padding: '20px' }}>
+                  <h4 style={{ color: '#1e3a8a', fontSize: '15px', fontWeight: '700', marginBottom: '15px' }}>GPA Progression Analytics</h4>
+                  <div style={{ height: '250px', width: '100%' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={Object.keys(resultsData).map(sem => ({
+                        name: `Sem ${sem.replace('sem', '')}`,
+                        gpa: parseFloat(resultsData[sem].gpa) || 0
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                        <XAxis dataKey="name" />
+                        <YAxis domain={[0, 10]} />
+                        <Tooltip />
+                        <Bar dataKey="gpa" fill="#1e3a8a" name="GPA" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
               {resultsData && Object.keys(resultsData).map((sem, idx) => (
                 <div key={idx} className="result-section">
                   <h4 style={{ color: '#1e3a8a', fontSize: '15px', fontWeight: '700', marginBottom: '10px' }}>

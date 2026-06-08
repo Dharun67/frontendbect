@@ -5,6 +5,7 @@ import { AppProvider } from './context/AppContext';
 import { useEffect } from 'react';
 import { initializeDefaultData } from './utils/storage';
 import { Toaster } from 'react-hot-toast';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   useEffect(() => {
@@ -12,12 +13,14 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AppProvider>
-        <Toaster position="top-right" />
-        <AppRoutes />
-      </AppProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AppProvider>
+          <Toaster position="top-right" />
+          <AppRoutes />
+        </AppProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

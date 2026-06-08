@@ -15,6 +15,7 @@ import {
   getAdminCertificateRequests, approveCertificateRequest, rejectCertificateRequest,
   getAdminComplaints, resolveComplaintTicket, getAdminAllFees
 } from '../utils/storage';
+import * as XLSX from 'xlsx';
 import '../assets/css/admin-portal.css';
 
 // NAV CONFIG
@@ -56,6 +57,7 @@ const navGroups = [
   { label: 'System', items: [
     { key: 'reports', label: 'Reports & Analytics', icon: 'RP' },
     { key: 'users', label: 'User Management', icon: 'UM' },
+    { key: 'auditlogs', label: 'Audit Logs', icon: 'AL' },
     { key: 'settings', label: 'Settings', icon: 'SG' },
   ]},
 ];
@@ -68,7 +70,7 @@ const pageTitles = {
   library: 'Library Management', hostel: 'Hostel Management', transport: 'Transport Management',
   placements: 'Placement Management', events: 'Events Management', noticeboard: 'Notice Board',
   certificates: 'Certificate Management', complaints: 'Complaints & Support',
-  reports: 'Reports & Analytics', users: 'User Management', settings: 'Settings',
+  reports: 'Reports & Analytics', users: 'User Management', auditlogs: 'System Audit Logs', settings: 'Settings',
 };
 
 //  COMPONENT 
@@ -216,6 +218,39 @@ function AdminPortalPage() {
   };
 
 
+
+  const handleStudentExcelUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const wsname = wb.SheetNames[0];
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wsname]);
+      
+      let successCount = 0;
+      for (const row of data) {
+        if (!row.roll || !row.name) continue;
+        const newStu = {
+          roll: String(row.roll),
+          name: row.name,
+          email: row.email || `${row.roll}@bect.edu.in`,
+          password: row.password || String(row.roll),
+          dept: row.dept || 'CSE',
+          sem: Number(row.sem) || 1,
+          phone: String(row.phone || ''),
+          gender: row.gender || 'Male',
+        };
+        const res = await addAdminStudent(newStu);
+        if (res) successCount++;
+      }
+      alert(`Successfully imported ${successCount} students.`);
+      const updatedStudents = await getAdminStudents();
+      setStuData(updatedStudents || []);
+    };
+    reader.readAsBinaryString(file);
+  };
 
   const filteredStudents = stuData.filter(s => {
     const q = stuSearch.toLowerCase();
@@ -449,7 +484,11 @@ function AdminPortalPage() {
     <div className="ap-page">
       <div className="ap-page-header">
         <div><h2>Student Management</h2><p>Manage all enrolled students  {stuData.length} total</p></div>
-        <div className="ap-page-actions">
+        <div className="ap-page-actions" style={{ display: 'flex', gap: '10px' }}>
+          <label className="ap-btn sm outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            Upload Excel
+            <input type="file" accept=".xlsx, .xls" style={{ display: 'none' }} onChange={handleStudentExcelUpload} />
+          </label>
           <button className="ap-btn sm gold" onClick={() => openModal('student')}>+ Add Student</button>
         </div>
       </div>
@@ -1937,6 +1976,46 @@ function AdminPortalPage() {
 
   const inp = { padding:'10px 14px', border:'1.5px solid #e2e8f0', borderRadius:9, fontSize:14, fontFamily:'Inter, sans-serif', outline:'none', background:'#fff', width:'100%', boxSizing:'border-box' };
 
+  const renderAuditLogs = () => (
+    <div className="ap-page">
+      <div className="ap-page-header">
+        <div><h2>System Audit Logs</h2><p>Track all admin and user activities across the platform</p></div>
+        <div className="ap-page-actions">
+          <button className="ap-btn sm outline" onClick={()=>alert('Export Logs to CSV')}> Export Logs</button>
+        </div>
+      </div>
+      <div className="ap-table-wrap" style={{ marginTop: '20px' }}>
+        <div className="ap-scroll-table">
+          <table className="ap-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Action Type</th>
+                <th>Details</th>
+                <th>IP Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activityLogs.map((log, i) => (
+                <tr key={log._id || i}>
+                  <td style={{ fontSize: 12 }}>{log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Recent'}</td>
+                  <td style={{ fontWeight: 600 }}>{log.user}</td>
+                  <td><span className="badge badge-blue">{log.action}</span></td>
+                  <td>{log.details}</td>
+                  <td style={{ fontSize: 12, color: '#64748b' }}>{log.ip || '192.168.1.1'}</td>
+                </tr>
+              ))}
+              {activityLogs.length === 0 && (
+                <tr><td colSpan="5" style={{textAlign:'center',padding:20,color:'#64748b'}}>No activity logs found.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderSettings = () => (
     <div className="ap-page">
       <div className="ap-page-header">
@@ -2398,7 +2477,7 @@ function AdminPortalPage() {
     library: renderLibrary, hostel: renderHostel, transport: renderTransport,
     placements: renderPlacements, events: renderEvents, noticeboard: renderNoticeBoard,
     certificates: renderCertificates, complaints: renderComplaints,
-    reports: renderReports, users: renderUsers, settings: renderSettings,
+    reports: renderReports, users: renderUsers, auditlogs: renderAuditLogs, settings: renderSettings,
   };
 
   return (

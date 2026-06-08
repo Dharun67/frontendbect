@@ -9,6 +9,7 @@ import {
   sendFacultyNotification, updateFacultyProfile, getMarks,
   getAssignmentSubmissions, uploadFacultyPhoto, getAdminCourses, getTimetable
 } from '../utils/storage';
+import * as XLSX from 'xlsx';
 import '../assets/css/faculty-portal.css';
 
 /* ─────────────── static data ─────────────── */
@@ -213,6 +214,58 @@ export default function FacultyPortalPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [marksCourse, courses]);
+
+  /* ── Excel Upload Handlers ── */
+  const handleAttendanceExcelUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const wsname = wb.SheetNames[0];
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wsname]);
+      
+      setAttData(prev => prev.map(student => {
+        const row = data.find(r => String(r.roll) === String(student.roll) || String(r['Roll No']) === String(student.roll));
+        if (row) {
+           const val = String(row.status || row.Status || row.present || row.Present || '').toUpperCase();
+           const present = val === 'P' || val === 'PRESENT' || val === '1' || val === 'TRUE';
+           return { ...student, present };
+        }
+        return student;
+      }));
+      toast("Attendance mapped from Excel!");
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleMarksExcelUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const wsname = wb.SheetNames[0];
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wsname]);
+      
+      setMarksData(prev => prev.map(student => {
+        const row = data.find(r => String(r.roll) === String(student.roll) || String(r['Roll No']) === String(student.roll));
+        if (row) {
+           return { 
+             ...student, 
+             ia1: row.ia1 !== undefined ? Number(row.ia1) : student.ia1,
+             ia2: row.ia2 !== undefined ? Number(row.ia2) : student.ia2,
+             assignment: row.assignment !== undefined ? Number(row.assignment) : student.assignment,
+           };
+        }
+        return student;
+      }));
+      toast("Marks mapped from Excel!");
+    };
+    reader.readAsBinaryString(file);
+  };
 
 
   /* ── toast ── */
@@ -631,6 +684,36 @@ export default function FacultyPortalPage() {
                   </div>
                 </div>
 
+                {/* Academic Performance Analytics */}
+                <div className="fp-card" style={{ gridColumn: '1 / -1' }}>
+                  <div className="fp-card-header">
+                    <h3 className="fp-card-title">Academic Performance Analytics</h3>
+                  </div>
+                  <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1, height: '300px' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={courses.map(c => {
+                            const sect = marksData.filter(s => s.cls === c.cls);
+                            const avgIA1 = sect.length ? Math.round(sect.reduce((a, s) => a + (s.ia1 || 0), 0) / sect.length) : 0;
+                            const avgIA2 = sect.length ? Math.round(sect.reduce((a, s) => a + (s.ia2 || 0), 0) / sect.length) : 0;
+                            return { name: c.name, IA1: avgIA1, IA2: avgIA2 };
+                          })}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                          <XAxis dataKey="name" />
+                          <YAxis domain={[0, 25]} />
+                          <Tooltip cursor={{ fill: 'transparent' }} />
+                          <Legend />
+                          <Bar dataKey="IA1" fill="#10b981" name="Avg IA-1 (Out of 25)" radius={[4, 4, 0, 0]} barSize={20} />
+                          <Bar dataKey="IA2" fill="#8b5cf6" name="Avg IA-2 (Out of 25)" radius={[4, 4, 0, 0]} barSize={20} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Recent Assignments */}
                 <div className="fp-card">
                   <div className="fp-card-header">
@@ -787,6 +870,10 @@ export default function FacultyPortalPage() {
                   <div className="fp-field" style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
                     <button className="fp-btn fp-btn--outline fp-btn--sm" onClick={() => setAttData(p => p.map(s => s.cls === (attCourse.includes('/') ? attCourse.split('/')[1].trim() : '21CS-A') ? { ...s, present: true } : s))}>Mark All Present</button>
                     <button className="fp-btn fp-btn--ghost fp-btn--sm" onClick={() => setAttData(p => p.map(s => s.cls === (attCourse.includes('/') ? attCourse.split('/')[1].trim() : '21CS-A') ? { ...s, present: false } : s))}>Mark All Absent</button>
+                    <label className="fp-btn fp-btn--primary fp-btn--sm" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      Upload Excel
+                      <input type="file" accept=".xlsx, .xls" style={{ display: 'none' }} onChange={handleAttendanceExcelUpload} />
+                    </label>
                   </div>
                 </div>
               </div>
@@ -862,10 +949,14 @@ export default function FacultyPortalPage() {
                       <option value="assignment">Assignment (Max: 10)</option>
                     </select>
                   </div>
-                  <div className="fp-field" style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+                  <div className="fp-field" style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
                     <button className="fp-btn fp-btn--outline fp-btn--sm" onClick={() => setClassFilter(f => f === '21CS-A' ? '' : '21CS-A')}>
                       {classFilter === '21CS-A' ? 'Show All' : 'Filter 21CS-A'}
                     </button>
+                    <label className="fp-btn fp-btn--primary fp-btn--sm" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      Upload Excel
+                      <input type="file" accept=".xlsx, .xls" style={{ display: 'none' }} onChange={handleMarksExcelUpload} />
+                    </label>
                   </div>
                 </div>
               </div>

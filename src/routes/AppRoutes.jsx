@@ -1,6 +1,9 @@
 import React, { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import LoadingSkeleton from '../components/ui/LoadingSkeleton';
+import AdminRoute from './AdminRoute';
+import FacultyRoute from './FacultyRoute';
+import StudentRoute from './StudentRoute';
 
 const Home = lazy(() => import('../pages/HomePage'));
 const AboutPage = lazy(() => import('../pages/AboutPage'));
@@ -37,9 +40,21 @@ function AppRoutes() {
                 <Route path="/student-login" element={<StudentLoginPage />} />
                 <Route path="/faculty-login" element={<FacultyLoginPage />} />
                 <Route path="/admin-login" element={<AdminLoginPage />} />
-                <Route path="/student-portal" element={<StudentPortalPage />} />
-                <Route path="/faculty-portal" element={<FacultyPortalPage />} />
-                <Route path="/admin-portal" element={<AdminPortalPage />} />
+                <Route path="/student-portal" element={
+                    <StudentRoute>
+                        <StudentPortalPage />
+                    </StudentRoute>
+                } />
+                <Route path="/faculty-portal" element={
+                    <FacultyRoute>
+                        <FacultyPortalPage />
+                    </FacultyRoute>
+                } />
+                <Route path="/admin-portal" element={
+                    <AdminRoute>
+                        <AdminPortalPage />
+                    </AdminRoute>
+                } />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="*" element={<Error404Page />} />
