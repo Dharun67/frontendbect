@@ -6,7 +6,7 @@ import {
   saveClassAttendance, saveStudentMarks, uploadFacultyAssignment,
   deleteFacultyAssignment, getFacultyLeaveRequests, actionLeaveRequest,
   sendFacultyNotification, updateFacultyProfile, getMarks,
-  getAssignmentSubmissions, uploadFacultyPhoto
+  getAssignmentSubmissions, uploadFacultyPhoto, getAdminCourses, getTimetable
 } from '../utils/storage';
 import '../assets/css/faculty-portal.css';
 
@@ -95,6 +95,9 @@ export default function FacultyPortalPage() {
   const [viewSubmissionsAssignmentId, setViewSubmissionsAssignmentId] = useState(null);
   const [viewSubmissionsTitle, setViewSubmissionsTitle] = useState('');
   const [submissionsList, setSubmissionsList] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [weeklyTimetable, setWeeklyTimetable] = useState({});
+  const [todaySchedule, setTodaySchedule] = useState([]);
 
   /* ── auth & data load ── */
   useEffect(() => {
@@ -119,10 +122,12 @@ export default function FacultyPortalPage() {
         joiningDate: loggedFaculty.joiningDate || 'June 1, 2013',
       });
       try {
-        const [students, assignList, leaves] = await Promise.all([
+        const [students, assignList, leaves, allCourses, timetable] = await Promise.all([
           getStudents(loggedFaculty.dept),
           getFacultyAssignments(),
           getFacultyLeaveRequests(),
+          getAdminCourses(),
+          getTimetable(loggedFaculty.dept, 5)
         ]);
         setFacultyStudents(students);
         setMarksData(students.map(s => ({
@@ -132,6 +137,95 @@ export default function FacultyPortalPage() {
         setAttData(students.map(s => ({ roll: s.roll, name: s.name, cls: s.cls, present: true })));
         setAssignments(assignList);
         setLeaveRequests(leaves);
+
+        // Filter and map courses
+        const myCourses = allCourses.filter(c => c.dept === loggedFaculty.dept);
+        const mappedCourses = myCourses.map((c, i) => ({
+          id: c._id || `c-${i}`,
+          code: c.code,
+          name: c.name,
+          cls: i % 2 === 0 ? '21CS-A' : '21CS-B',
+          sem: c.sem,
+          credits: c.credits,
+          students: c.studentsCount || (i % 2 === 0 ? 60 : 58),
+          classes: c.type === 'Lab' ? 10 : 24,
+          done: c.type === 'Lab' ? 9 : 18,
+          pct: c.type === 'Lab' ? 90 : 75
+        }));
+        setCourses(mappedCourses);
+
+        // Map Timetable
+        const mappedTimetable = {};
+        if (timetable && timetable.length > 0) {
+          timetable.forEach(item => {
+            mappedTimetable[item.day] = item.slots.map((slot, idx) => {
+              if (slot === '—' || slot === 'Lunch') return slot;
+              return `${slot} / ${idx % 2 === 0 ? '21CS-A' : '21CS-B'}`;
+            });
+          });
+          setWeeklyTimetable(mappedTimetable);
+        } else {
+          setWeeklyTimetable(WEEKLY_TIMETABLE);
+        }
+
+        // Today's schedule
+        const getTodaySchedule = (timetableList) => {
+          if (!timetableList || timetableList.length === 0) return SCHEDULE;
+          const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          const todayName = days[new Date().getDay()];
+          const dayName = (todayName === 'Sun' || todayName === 'Sat') ? 'Mon' : todayName;
+          const daySchedule = timetableList.find(d => d.day === dayName);
+          if (!daySchedule) return SCHEDULE;
+
+          const timeSlots = [
+            "09:00 AM",
+            "10:00 AM",
+            "11:00 AM",
+            "12:00 PM",
+            "02:00 PM",
+            "03:00 PM",
+            "04:00 PM"
+          ];
+
+          const subjectMap = {
+            "DS": { name: "Data Structures", room: "Room 301", type: "Theory" },
+            "OS": { name: "Operating Systems", room: "Room 204", type: "Theory" },
+            "DBMS": { name: "Database Management Systems", room: "Room 301", type: "Theory" },
+            "CN": { name: "Computer Networks", room: "Room 301", type: "Theory" },
+            "SE": { name: "Software Engineering", room: "Room 204", type: "Theory" },
+            "DBMS Lab": { name: "DBMS Laboratory", room: "Systems Lab II", type: "Lab" },
+            "CN Lab": { name: "Computer Networks Lab", room: "Networks Lab I", type: "Lab" },
+            "WT": { name: "Web Technologies", room: "Room 302", type: "Theory" },
+            "Cloud": { name: "Cloud Computing", room: "Room 302", type: "Theory" },
+            "DA": { name: "Data Analytics", room: "Room 302", type: "Theory" },
+            "ST": { name: "Software Testing", room: "Room 302", type: "Theory" },
+            "Web Lab": { name: "Web Lab", room: "Systems Lab I", type: "Lab" },
+            "Cloud Lab": { name: "Cloud Lab", room: "Systems Lab II", type: "Lab" },
+            "VLSI": { name: "VLSI Design", room: "Room 201", type: "Theory" },
+            "DSP": { name: "Digital Signal Processing", room: "Room 201", type: "Theory" },
+            "Comm": { name: "Communication Theory", room: "Room 201", type: "Theory" },
+            "Control": { name: "Control Systems", room: "Room 202", type: "Theory" },
+            "Microproc": { name: "Microprocessors", room: "Room 202", type: "Theory" },
+            "VLSI Lab": { name: "VLSI Lab", room: "Lab 101", type: "Lab" },
+            "DSP Lab": { name: "DSP Lab", room: "Lab 102", type: "Lab" }
+          };
+
+          return daySchedule.slots.map((slot, i) => {
+            if (slot === 'Lunch' || slot === '—') return null;
+            const subInfo = subjectMap[slot] || { name: slot, room: "TBA", type: "Theory" };
+            return {
+              time: timeSlots[i],
+              subject: subInfo.name,
+              section: i % 2 === 0 ? '21CS-A' : '21CS-B',
+              room: subInfo.room,
+              type: subInfo.type
+            };
+          }).filter(Boolean);
+        };
+
+        const derivedSchedule = getTodaySchedule(timetable);
+        setTodaySchedule(derivedSchedule);
+
       } catch (err) {
         console.error('Error loading faculty portal data:', err);
       } finally {
@@ -144,7 +238,7 @@ export default function FacultyPortalPage() {
   // Update marks data when selected course changes
   useEffect(() => {
     const courseCode = marksCourse.split('/')[0].trim();
-    const courseInfo = COURSES.find(c => c.code === courseCode);
+    const courseInfo = courses.find(c => c.code === courseCode);
     const subjectName = courseInfo ? courseInfo.name : 'Data Structures';
     
     const updateMarksForCourse = async () => {
@@ -178,7 +272,7 @@ export default function FacultyPortalPage() {
       updateMarksForCourse();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marksCourse]);
+  }, [marksCourse, courses]);
 
 
   /* ── toast ── */
@@ -484,7 +578,7 @@ export default function FacultyPortalPage() {
               <div className="fp-kpi-grid">
                 {[
                   { label: 'Total Students',        value: facultyStudents.length, sub: 'Across all sections' },
-                  { label: 'Courses Assigned',      value: 3,                      sub: 'This semester' },
+                  { label: 'Courses Assigned',      value: courses.length,         sub: 'This semester' },
                   { label: 'Classes This Week',     value: 18,                     sub: 'Theory + Lab' },
                   { label: 'Pending Evaluations',   value: 5,                      sub: 'Assignments to grade' },
                 ].map(({ label, value, sub }) => (
@@ -504,16 +598,25 @@ export default function FacultyPortalPage() {
                     <span className="fp-card-tag">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
                   </div>
                   <div className="fp-schedule-list">
-                    {SCHEDULE.map(({ time, subject, section, room, type }) => (
-                      <div className="fp-schedule-item" key={time}>
-                        <div className="fp-schedule-time">{time}</div>
-                        <div className="fp-schedule-info">
-                          <span className="fp-schedule-subject">{subject}</span>
-                          <span className="fp-schedule-meta">{section} &middot; {room}</span>
+                    {todaySchedule.length > 0 ? (
+                      todaySchedule.map(({ time, subject, section, room, type }) => (
+                        <div className="fp-schedule-item" key={time}>
+                          <div className="fp-schedule-time">{time}</div>
+                          <div className="fp-schedule-info">
+                            <span className="fp-schedule-subject">{subject}</span>
+                            <span className="fp-schedule-meta">{section} &middot; {room}</span>
+                          </div>
+                          <span className={`fp-badge fp-badge--${type.toLowerCase()}`}>{type}</span>
                         </div>
-                        <span className={`fp-badge fp-badge--${type.toLowerCase()}`}>{type}</span>
+                      ))
+                    ) : (
+                      <div className="fp-schedule-item">
+                        <div className="fp-schedule-info">
+                          <span className="fp-schedule-subject">No Classes Today</span>
+                          <span className="fp-schedule-meta">Enjoy your day off!</span>
+                        </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
 
@@ -549,7 +652,7 @@ export default function FacultyPortalPage() {
                       <tr><th>Course</th><th>Section</th><th>Avg Att.</th><th>At Risk</th></tr>
                     </thead>
                     <tbody>
-                      {COURSES.map(c => {
+                      {courses.map(c => {
                         const sect = facultyStudents.filter(s => s.cls === c.cls);
                         const avg = sect.length ? Math.round(sect.reduce((a, s) => a + s.att, 0) / sect.length) : 0;
                         const risk = sect.filter(s => s.att < 75).length;
@@ -1077,7 +1180,7 @@ export default function FacultyPortalPage() {
               </div>
 
               <div className="fp-courses-grid">
-                {COURSES.map(c => (
+                {courses.map(c => (
                   <div className="fp-course-card" key={c.id}>
                     <div className="fp-course-header">
                       <div className="fp-course-code-badge">{c.code}</div>
@@ -1151,7 +1254,7 @@ export default function FacultyPortalPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(WEEKLY_TIMETABLE).map(([day, slots]) => (
+                      {Object.entries(weeklyTimetable).map(([day, slots]) => (
                         <tr key={day}>
                           <td className="fp-tt-day">{day}</td>
                           {slots.map((slot, i) => (
@@ -1173,19 +1276,28 @@ export default function FacultyPortalPage() {
               <div className="fp-card" style={{ marginTop: 24 }}>
                 <h3 className="fp-card-title" style={{ marginBottom: 16 }}>Today's Detailed Schedule</h3>
                 <div className="fp-schedule-list">
-                  {SCHEDULE.map(({ time, subject, section, room, type }) => (
-                    <div className="fp-schedule-item fp-schedule-item--lg" key={time}>
-                      <div className="fp-schedule-time-block">
-                        <span className="fp-schedule-time">{time}</span>
+                  {todaySchedule && todaySchedule.length > 0 ? (
+                    todaySchedule.map(({ time, subject, section, room, type }) => (
+                      <div className="fp-schedule-item fp-schedule-item--lg" key={time}>
+                        <div className="fp-schedule-time-block">
+                          <span className="fp-schedule-time">{time}</span>
+                        </div>
+                        <div className="fp-schedule-divider" />
+                        <div className="fp-schedule-info">
+                          <span className="fp-schedule-subject">{subject}</span>
+                          <span className="fp-schedule-meta">{section} &middot; {room}</span>
+                        </div>
+                        <span className={`fp-badge fp-badge--${type.toLowerCase()}`}>{type}</span>
                       </div>
-                      <div className="fp-schedule-divider" />
+                    ))
+                  ) : (
+                    <div className="fp-schedule-item fp-schedule-item--lg">
                       <div className="fp-schedule-info">
-                        <span className="fp-schedule-subject">{subject}</span>
-                        <span className="fp-schedule-meta">{section} &middot; {room}</span>
+                        <span className="fp-schedule-subject">No Classes Today</span>
+                        <span className="fp-schedule-meta">Enjoy your day off!</span>
                       </div>
-                      <span className={`fp-badge fp-badge--${type.toLowerCase()}`}>{type}</span>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>

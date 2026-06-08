@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clgLogo from '../assets/images/CLGLOGO.png';
-import { getSessionUser, logoutUser, getAttendance, getFees, getTimetable, getAssignments, getNotifications, getResults, submitAssignment, payFeesOnline, submitLeaveApplication, getLeaveApplications, getStudentHallTicket, uploadStudentPhoto } from '../utils/storage';
+import { getSessionUser, logoutUser, getAttendance, getFees, getTimetable, getAssignments, getNotifications, getResults, submitAssignment, payFeesOnline, submitLeaveApplication, getLeaveApplications, getStudentHallTicket, uploadStudentPhoto, getNotices, getAdminSubjects, getAdminBooks, getPlacements, getAdminTransportRoutes, getAdminHostelAllocations, getStudentComplaints, createStudentComplaint, getStudentCertificates, createCertificateRequest } from '../utils/storage';
 import '../assets/css/student-portal.css';
 
 function StudentPortalPage() {
@@ -16,6 +16,17 @@ function StudentPortalPage() {
   const [notificationsData, setNotificationsData] = useState([]);
   const [resultsData, setResultsData] = useState(null);
   const [timetableData, setTimetableData] = useState([]);
+
+  // Live Database Arrays
+  const [noticesData, setNoticesData] = useState([]);
+  const [subjectsData, setSubjectsData] = useState([]);
+  const [booksData, setBooksData] = useState([]);
+  const [placementDrives, setPlacementDrives] = useState([]);
+  const [transportRoutes, setTransportRoutes] = useState([]);
+  const [hostelAllocation, setHostelAllocation] = useState(null);
+  const [certificatesData, setCertificatesData] = useState([]);
+  const [examSchedules, setExamSchedules] = useState([]);
+  const [advisorName, setAdvisorName] = useState('Dr. Ramesh Kumar');
 
   // Layout UI State
   const [activePage, setActivePage] = useState('dashboard');
@@ -47,9 +58,7 @@ function StudentPortalPage() {
   const [appliedJobs, setAppliedJobs] = useState([]);
 
   // Leave Applications list
-  const [leavesHistory, setLeavesHistory] = useState([
-    { id: 1, type: 'Medical Leave', from: '2025-05-10', to: '2025-05-12', reason: 'Fever and cold', status: 'Approved' }
-  ]);
+  const [leavesHistory, setLeavesHistory] = useState([]);
   const [leaveType, setLeaveType] = useState('Medical Leave');
   const [leaveFrom, setLeaveFrom] = useState('');
   const [leaveTo, setLeaveTo] = useState('');
@@ -63,9 +72,7 @@ function StudentPortalPage() {
   const [registeredEvents, setRegisteredEvents] = useState([]);
 
   // Grievance Tickets List
-  const [supportTickets, setSupportTickets] = useState([
-    { id: 'TKT-102', category: 'Hostel Facilities', desc: 'Wi-Fi connection latency in Block B', priority: 'Medium', status: 'In Progress' }
-  ]);
+  const [supportTickets, setSupportTickets] = useState([]);
   const [ticketCat, setTicketCat] = useState('Academic Issues');
   const [ticketPriority, setTicketPriority] = useState('Low');
   const [ticketDesc, setTicketDesc] = useState('');
@@ -82,7 +89,10 @@ function StudentPortalPage() {
       setStudentData(student);
       const rollNo = student.roll;
       try {
-        const [attendance, fees, assignments, notifications, results, leaves, timetable] = await Promise.all([
+        const [
+          attendance, fees, assignments, notifications, results, leaves, timetable,
+          notices, subjects, books, placements, transport, hostel, tickets, certificates, hallTicket
+        ] = await Promise.all([
           getAttendance(rollNo),
           getFees(rollNo),
           getAssignments(rollNo),
@@ -90,6 +100,15 @@ function StudentPortalPage() {
           getResults(rollNo),
           getLeaveApplications(rollNo),
           getTimetable(student.dept, student.sem || 5),
+          getNotices(),
+          getAdminSubjects(),
+          getAdminBooks(),
+          getPlacements(),
+          getAdminTransportRoutes(),
+          getAdminHostelAllocations(),
+          getStudentComplaints(rollNo),
+          getStudentCertificates(rollNo),
+          getStudentHallTicket(rollNo)
         ]);
         setAttendanceData(attendance);
         setFeesData(fees);
@@ -100,12 +119,36 @@ function StudentPortalPage() {
         if (leaves && leaves.length > 0) {
           setLeavesHistory(leaves);
         }
+        setNoticesData(notices || []);
+        setSubjectsData(subjects || []);
+        setBooksData(books || []);
+        setPlacementDrives(placements?.drives || []);
+        setTransportRoutes(transport || []);
+        
+        const myHostel = hostel?.find(h => h.roll === rollNo) || null;
+        setHostelAllocation(myHostel);
+        
+        setSupportTickets(tickets || []);
+        setCertificatesData(certificates || []);
+        
+        if (hallTicket && hallTicket.success) {
+          setExamSchedules(hallTicket.schedules || []);
+        }
+
+        const advisorMap = {
+          CSE: "Dr. Ramesh Kumar",
+          ECE: "Dr. Anand Rajan",
+          Mech: "Prof. Kumar Selvam",
+          Civil: "Dr. Meena Thangaraj",
+          IT: "Dr. Deepa Srinivasan"
+        };
+        setAdvisorName(advisorMap[student.dept] || "Dr. Ramesh Kumar");
       } catch (e) {
         console.error('Error loading student data from backend:', e);
       } finally {
         setIsLoading(false);
       }
-    };
+    };0
     init();
   }, [navigate]);
 
@@ -135,13 +178,101 @@ function StudentPortalPage() {
   const feeDue = feesData ? feesData.due : 12500;
   const pendingAssignments = assignmentsData.filter(a => a.status === 'pending').length;
 
-  // Academics Syllabus Structure
-  const syllabusData = {
-    'Data Structures': ['Module 1: Linear Data Structures - Stacks and Queues', 'Module 2: Non-Linear Structures - Trees and Binary Search Trees', 'Module 3: Graphs and Networks Algorithms', 'Module 4: Searching, Sorting and Hash Tables', 'Module 5: Dynamic Programming & Greedy Approaches'],
-    'Operating Systems': ['Module 1: Introduction & System Architectures', 'Module 2: Process Scheduling & Mutexes', 'Module 3: Deadlocks and Concurrency Control', 'Module 4: Memory Management & Paging Systems', 'Module 5: Storage & File Management Policies'],
-    'DBMS': ['Module 1: Database System Concepts & ER Modelling', 'Module 2: Relational Query Languages & Algebra', 'Module 3: SQL Triggers, Functions and Procedures', 'Module 4: Transaction Isolation & ACID Protocols', 'Module 5: Database Recovery & Index Optimization'],
-    'Computer Networks': ['Module 1: Layered Network Architecture & Physical Layer', 'Module 2: Data Link Layer Protocols & MAC Addressing', 'Module 3: IP Addressing & Routing Protocols', 'Module 4: Transport Layer Protocols (TCP and UDP)', 'Module 5: Application Layer - DNS, HTTP, SMTP'],
-    'Software Engineering': ['Module 1: Software Process Models (Waterfall, Agile)', 'Module 2: Requirement Analysis & Specification', 'Module 3: Architectural Design & Design Patterns', 'Module 4: Testing Methodologies (White Box, Black Box)', 'Module 5: Project Risk & DevOps Systems']
+  // Timetable dashboard classes extractor
+  const getTodayClasses = () => {
+    if (!timetableData || timetableData.length === 0) return [];
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const todayName = days[new Date().getDay()];
+    // Fallback to Monday if it is Sunday/Saturday
+    const dayName = (todayName === 'Sun' || todayName === 'Sat') ? 'Mon' : todayName;
+    const daySchedule = timetableData.find(d => d.day === dayName);
+    if (!daySchedule) return [];
+    
+    const timeSlots = [
+      "09:00 - 10:00 AM",
+      "10:00 - 11:00 AM",
+      "11:00 - 12:00 PM",
+      "12:00 - 02:00 PM", // Lunch
+      "02:00 - 03:00 PM",
+      "03:00 - 04:00 PM",
+      "04:00 - 05:00 PM"
+    ];
+    
+    const subjectInstructorMap = {
+      "DS": { name: "Data Structures", room: "Room 301", faculty: "Dr. Ramesh Kumar" },
+      "OS": { name: "Operating Systems", room: "Room 204", faculty: "Dr. Anand Mohan" },
+      "DBMS": { name: "Database Management Systems", room: "Room 301", faculty: "Dr. Priya Nair" },
+      "CN": { name: "Computer Networks", room: "Room 301", faculty: "Prof. Kumar Raj" },
+      "SE": { name: "Software Engineering", room: "Room 204", faculty: "Dr. Anand Mohan" },
+      "DBMS Lab": { name: "DBMS Laboratory", room: "Systems Lab II", faculty: "Dr. Priya Nair" },
+      "CN Lab": { name: "Computer Networks Lab", room: "Networks Lab I", faculty: "Prof. Kumar Raj" },
+      "WT": { name: "Web Technologies", room: "Room 302", faculty: "Dr. Priya Nair" },
+      "Cloud": { name: "Cloud Computing", room: "Room 302", faculty: "Dr. Deepa S" },
+      "DA": { name: "Data Analytics", room: "Room 302", faculty: "Dr. Deepa S" },
+      "ST": { name: "Software Testing", room: "Room 302", faculty: "Dr. Deepa S" },
+      "Web Lab": { name: "Web Lab", room: "Systems Lab I", faculty: "Dr. Priya Nair" },
+      "Cloud Lab": { name: "Cloud Lab", room: "Systems Lab II", faculty: "Dr. Deepa S" },
+      "VLSI": { name: "VLSI Design", room: "Room 201", faculty: "Dr. Anand Rajan" },
+      "DSP": { name: "Digital Signal Processing", room: "Room 201", faculty: "Dr. Kavitha P" },
+      "Comm": { name: "Communication Theory", room: "Room 201", faculty: "Dr. Kavitha P" },
+      "Control": { name: "Control Systems", room: "Room 202", faculty: "Dr. Anand Rajan" },
+      "Microproc": { name: "Microprocessors", room: "Room 202", faculty: "Dr. Kavitha P" },
+      "VLSI Lab": { name: "VLSI Lab", room: "Lab 101", faculty: "Dr. Anand Rajan" },
+      "DSP Lab": { name: "DSP Lab", room: "Lab 102", faculty: "Dr. Kavitha P" }
+    };
+    
+    return daySchedule.slots.map((slot, i) => {
+      if (slot === 'Lunch' || slot === '—') return null;
+      const subInfo = subjectInstructorMap[slot] || { name: slot, room: "TBA", faculty: advisorName };
+      return {
+        time: timeSlots[i],
+        subject: subInfo.name,
+        instructor: subInfo.faculty,
+        room: subInfo.room
+      };
+    }).filter(Boolean);
+  };
+
+  // Issued Books list derived from DB
+  const getIssuedBooks = () => {
+    if (!booksData || booksData.length === 0) return [];
+    const myDeptBooks = booksData.filter(b => b.dept === studentDept);
+    return myDeptBooks.slice(0, 2).map((book, i) => {
+      const issueDate = `2026-05-${15 + i * 5}`;
+      const dueDate = `2026-06-${14 + i * 5}`;
+      return {
+        title: book.title,
+        author: book.author,
+        bookId: book.bookId,
+        issued: issueDate,
+        due: dueDate
+      };
+    });
+  };
+
+  // Curriculum courses from DB
+  const getStudentSubjects = () => {
+    if (!subjectsData || subjectsData.length === 0) return [];
+    return subjectsData.filter(s => s.dept === studentDept && s.sem === studentSem);
+  };
+
+  // Syllabus generator helper
+  const getSyllabusModules = (subName) => {
+    const fallback = {
+      'Data Structures': ['Module 1: Linear Data Structures - Stacks and Queues', 'Module 2: Non-Linear Structures - Trees and Binary Search Trees', 'Module 3: Graphs and Networks Algorithms', 'Module 4: Searching, Sorting and Hash Tables', 'Module 5: Dynamic Programming & Greedy Approaches'],
+      'Operating Systems': ['Module 1: Introduction & System Architectures', 'Module 2: Process Scheduling & Mutexes', 'Module 3: Deadlocks and Concurrency Control', 'Module 4: Memory Management & Paging Systems', 'Module 5: Storage & File Management Policies'],
+      'DBMS': ['Module 1: Database System Concepts & ER Modelling', 'Module 2: Relational Query Languages & Algebra', 'Module 3: SQL Triggers, Functions and Procedures', 'Module 4: Transaction Isolation & ACID Protocols', 'Module 5: Database Recovery & Index Optimization'],
+      'Computer Networks': ['Module 1: Layered Network Architecture & Physical Layer', 'Module 2: Data Link Layer Protocols & MAC Addressing', 'Module 3: IP Addressing & Routing Protocols', 'Module 4: Transport Layer Protocols (TCP and UDP)', 'Module 5: Application Layer - DNS, HTTP, SMTP'],
+      'Software Engineering': ['Module 1: Software Process Models (Waterfall, Agile)', 'Module 2: Requirement Analysis & Specification', 'Module 3: Architectural Design & Design Patterns', 'Module 4: Testing Methodologies (White Box, Black Box)', 'Module 5: Project Risk & DevOps Systems']
+    };
+    if (fallback[subName]) return fallback[subName];
+    return [
+      `Module 1: Fundamental Concepts in ${subName}`,
+      `Module 2: Core Architectures and Systems of ${subName}`,
+      `Module 3: Practice and Lab Methodologies in ${subName}`,
+      `Module 4: Advanced Optimizations in ${subName}`,
+      `Module 5: Modern Trends and Future Scope of ${subName}`
+    ];
   };
 
   const handleFileChange = (e) => {
@@ -224,14 +355,6 @@ function StudentPortalPage() {
     }
   };
 
-  // Library Reservation
-  const libraryCatalog = [
-    { title: 'Introduction to Algorithms', author: 'Cormen, Leiserson, Rivest', copies: 3 },
-    { title: 'Operating System Concepts', author: 'Silberschatz, Galvin, Gagne', copies: 2 },
-    { title: 'Database System Concepts', author: 'Korth, Silberschatz, Sudarshan', copies: 4 },
-    { title: 'Computer Networks', author: 'Andrew S. Tanenbaum', copies: 1 }
-  ];
-
   const handleReserveBook = (title) => {
     if (reservedBooks.includes(title)) {
       alert('Book already reserved!');
@@ -240,14 +363,6 @@ function StudentPortalPage() {
     setReservedBooks(prev => [...prev, title]);
     alert(`Reservation request for "${title}" confirmed. Pick up from library within 48 hours.`);
   };
-
-  // Placements Apply
-  const placementDrives = [
-    { id: 'ZOHO', company: 'Zoho Corporation', role: 'Software Developer', package: '8.5 LPA', date: 'June 10, 2025' },
-    { id: 'TCS', company: 'TCS', role: 'Systems Engineer', package: '6.5 LPA', date: 'June 20, 2025' },
-    { id: 'INFY', company: 'Infosys', role: 'Power Programmer', package: '5.0 LPA', date: 'June 25, 2025' },
-    { id: 'AMZN', company: 'Amazon', role: 'SDE-1', package: '12.0 LPA', date: 'July 05, 2025' }
-  ];
 
   const handleApplyJob = (driveId) => {
     if (appliedJobs.includes(driveId)) {
@@ -670,26 +785,126 @@ function StudentPortalPage() {
       } catch (err) {
         console.error(err);
       }
+    } else if (docName === 'Course Completion Certificate') {
+      try {
+        const student = studentData;
+        const printWindow = window.open('', '_blank');
+        const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Course Completion Certificate - ${studentRoll}</title>
+              <style>
+                body { font-family: 'Georgia', serif; color: #1e293b; padding: 50px; line-height: 1.8; text-align: justify; }
+                .border-container { border: 5px double #1e3a8a; padding: 40px; border-radius: 8px; position: relative; }
+                .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 40px; }
+                .header h1 { font-family: sans-serif; font-size: 26px; color: #1e3a8a; margin: 0 0 5px 0; font-weight: 800; text-transform: uppercase; }
+                .header p { font-family: sans-serif; font-size: 12px; color: #475569; margin: 0; }
+                .date-ref { display: flex; justify-content: space-between; margin-bottom: 40px; font-family: sans-serif; font-size: 13px; }
+                .cert-title { text-align: center; font-size: 22px; font-weight: bold; text-decoration: underline; color: #1e3a8a; margin-bottom: 40px; font-family: sans-serif; }
+                .cert-body { font-size: 16px; margin-bottom: 60px; text-indent: 50px; }
+                .footer-sig { display: flex; justify-content: flex-end; margin-top: 80px; }
+                .sig-box { text-align: center; font-family: sans-serif; font-size: 14px; width: 220px; }
+                .sig-box strong { display: block; margin-top: 40px; border-top: 1px solid #64748b; padding-top: 8px; }
+                .seal { width: 100px; height: 100px; border: 2px solid #1e3a8a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: sans-serif; font-size: 10px; font-weight: bold; color: #1e3a8a; position: absolute; left: 60px; bottom: 60px; transform: rotate(-10deg); opacity: 0.8; }
+              </style>
+            </head>
+            <body>
+              <div class="border-container">
+                <div class="header">
+                  <h1>Best Engineering College</h1>
+                  <p>Accredited by NAAC with 'A+' Grade | Affiliated to Anna University</p>
+                  <p style="font-size: 10px; color: #64748b;">NH-48, Pennalur Village, Sriperumbudur, Kanchipuram - 602117</p>
+                </div>
+
+                <div class="date-ref">
+                  <div>Ref No: BEC/CC/2026/\${Math.floor(1000 + Math.random() * 9000)}</div>
+                  <div>Date: \${todayStr}</div>
+                </div>
+
+                <div class="cert-title">COURSE COMPLETION CERTIFICATE</div>
+
+                <div class="cert-body">
+                  This is to certify that Mr./Ms. <strong>\${student.name}</strong>, bearing Roll Number <strong>\${student.roll}</strong>, has successfully completed the coursework for the Bachelor of Engineering (B.E.) degree in <strong>\${student.dept}</strong> at this institution, covering all prescribed academic requirements of Anna University.
+                </div>
+                
+                <div class="cert-body" style="text-indent: 0;">
+                  His/Her conduct and character during the course of study have been consistently <strong>Good</strong>. We wish him/her success in all future endeavors.
+                </div>
+
+                <div class="seal">BEC COLLEGE<br/>OFFICIAL<br/>SEAL</div>
+
+                <div class="footer-sig">
+                  <div class="sig-box">
+                    <div style="font-style: italic; font-size: 16px; font-family: sans-serif; color: #475569;">Dr. Rajesh Kumar</div>
+                    <strong>Principal</strong>
+                  </div>
+                </div>
+              </div>
+              <script>
+                window.onload = function() {
+                  window.print();
+                }
+              </script>
+            </body>
+          </html>
+        \`);
+        printWindow.document.close();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const handleRequestCertificate = async (type) => {
+    const certData = {
+      studentName,
+      rollNo: studentRoll,
+      dept: studentDept,
+      type: type === 'Bonafide Certificate' ? 'Bonafide' : 'Course Completion',
+      purpose: 'Official verification and academic reference'
+    };
+    try {
+      const saved = await createCertificateRequest(certData);
+      if (saved) {
+        const list = await getStudentCertificates(studentRoll);
+        setCertificatesData(list);
+        alert(`${type} request submitted successfully. It will be available for download once approved by the Admin.`);
+      } else {
+        alert('Failed to submit request.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error submitting request.');
     }
   };
 
   // Support Ticket Submit
-  const handleTicketSubmit = (e) => {
+  const handleTicketSubmit = async (e) => {
     e.preventDefault();
     if (!ticketDesc) {
       alert('Please enter a description for your issue.');
       return;
     }
-    const newTicket = {
-      id: `TKT-${Math.floor(100 + Math.random() * 900)}`,
+    const complaintData = {
+      student: `${studentName} (${studentRoll})`,
+      title: ticketDesc,
       category: ticketCat,
-      desc: ticketDesc,
-      priority: ticketPriority,
-      status: 'Open'
+      priority: ticketPriority
     };
-    setSupportTickets(prev => [newTicket, ...prev]);
-    setTicketDesc('');
-    alert('Grievance ticket created successfully. Track status inside Support Center dashboard.');
+    try {
+      const saved = await createStudentComplaint(complaintData);
+      if (saved) {
+        setSupportTickets(prev => [saved, ...prev]);
+        setTicketDesc('');
+        alert('Grievance ticket created successfully. Track status inside Support Center dashboard.');
+      } else {
+        alert('Failed to submit grievance. Please try again.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error connecting to server.');
+    }
   };
 
   // Events & Clubs Register
@@ -876,27 +1091,24 @@ function StudentPortalPage() {
                   </div>
                   <div className="card-body">
                     <div className="schedule-list">
-                      <div className="schedule-item">
-                        <div className="schedule-time">09:00 - 10:00 AM</div>
-                        <div className="schedule-details">
-                          <h4>Data Structures</h4>
-                          <p>Dr. Ramesh Kumar • Room 301</p>
+                      {getTodayClasses().length > 0 ? (
+                        getTodayClasses().map((cls, idx) => (
+                          <div className="schedule-item" key={idx}>
+                            <div className="schedule-time">{cls.time}</div>
+                            <div className="schedule-details">
+                              <h4>{cls.subject}</h4>
+                              <p>{cls.instructor} • {cls.room}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="schedule-item">
+                          <div className="schedule-details">
+                            <h4>No Classes Today</h4>
+                            <p>Enjoy your day off!</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="schedule-item">
-                        <div className="schedule-time">10:00 - 11:00 AM</div>
-                        <div className="schedule-details">
-                          <h4>Operating Systems</h4>
-                          <p>Dr. Anand Rajan • Room 204</p>
-                        </div>
-                      </div>
-                      <div className="schedule-item">
-                        <div className="schedule-time">11:00 - 12:00 PM</div>
-                        <div className="schedule-details">
-                          <h4>Computer Networks</h4>
-                          <p>Dr. Kumar S. • Room 301</p>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -927,16 +1139,17 @@ function StudentPortalPage() {
                   </div>
                   <div className="card-body">
                     <div className="announcement-list">
-                      <div className="announcement-item">
-                        <h4>End Semester Examination Dates</h4>
-                        <p>Semester terminal theory examinations start July 15, 2025.</p>
-                        <small>June 1, 2025</small>
-                      </div>
-                      <div className="announcement-item">
-                        <h4>Placement Cell Notice</h4>
-                        <p>Hyundai Motors placement registration closes tomorrow.</p>
-                        <small>June 5, 2025</small>
-                      </div>
+                      {noticesData.length > 0 ? (
+                        noticesData.slice(0, 3).map((notice, idx) => (
+                          <div className="announcement-item" key={idx}>
+                            <h4>{notice.title}</h4>
+                            <p>{notice.content}</p>
+                            <small>{notice.date} &bull; {notice.category}</small>
+                          </div>
+                        ))
+                      ) : (
+                        <p style={{ padding: '15px', color: '#64748b' }}>No recent announcements.</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -947,26 +1160,32 @@ function StudentPortalPage() {
                   </div>
                   <div className="card-body">
                     <div className="exam-list">
-                      <div className="exam-item">
-                        <div className="exam-date">
-                          <div className="exam-day">15</div>
-                          <div className="exam-month">Jun</div>
+                      {examSchedules.length > 0 ? (
+                        examSchedules.map((exam, idx) => {
+                          const dateObj = new Date(exam.examDate);
+                          const day = dateObj.getDate();
+                          const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
+                          return (
+                            <div className="exam-item" key={idx}>
+                              <div className="exam-date">
+                                <div className="exam-day">{day}</div>
+                                <div className="exam-month">{month}</div>
+                              </div>
+                              <div className="exam-details">
+                                <h4>{exam.subjectName} ({exam.subjectCode})</h4>
+                                <p>{exam.session.split('(')[0].trim()} &bull; Hall: {exam.hallNo}</p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="exam-item">
+                          <div className="exam-details">
+                            <h4>No Upcoming Exams</h4>
+                            <p>No schedules released for your semester yet.</p>
+                          </div>
                         </div>
-                        <div className="exam-details">
-                          <h4>Data Structures</h4>
-                          <p>Internal Assessment Test 2 • 09:00 AM</p>
-                        </div>
-                      </div>
-                      <div className="exam-item">
-                        <div className="exam-date">
-                          <div className="exam-day">16</div>
-                          <div className="exam-month">Jun</div>
-                        </div>
-                        <div className="exam-details">
-                          <h4>Operating Systems</h4>
-                          <p>Internal Assessment Test 2 • 09:00 AM</p>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1034,22 +1253,22 @@ function StudentPortalPage() {
                   <div className="info-field"><label>Department</label><p>{studentDept === 'CSE' ? 'Computer Science & Engineering' : studentDept}</p></div>
                   <div className="info-field"><label>Course Details</label><p>B.E. {studentDept}</p></div>
                   <div className="info-field"><label>Semester</label><p>Semester {studentSem}</p></div>
-                  <div className="info-field"><label>Academic Advisor</label><p>Dr. Ramesh Kumar</p></div>
+                  <div className="info-field"><label>Academic Advisor</label><p>{advisorName}</p></div>
                   <div className="info-field"><label>Official Email</label><p>{studentEmail}</p></div>
                 </div>
 
                 <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '15px' }}>Contact Information</h3>
                 <div className="info-grid" style={{ marginBottom: '30px' }}>
-                  <div className="info-field"><label>Personal Mobile</label><p>+91 98765 43210</p></div>
-                  <div className="info-field"><label>Emergency Contact</label><p>+91 98765 00001</p></div>
-                  <div className="info-field"><label>Residential Address</label><p>12, Anna Nagar Main Road, Chennai, Tamil Nadu - 600 040</p></div>
+                  <div className="info-field"><label>Personal Mobile</label><p>{studentData.phone || '+91 98765 43210'}</p></div>
+                  <div className="info-field"><label>Emergency Contact</label><p>{studentData.parentPhone || '+91 98765 00001'}</p></div>
+                  <div className="info-field"><label>Residential Address</label><p>{studentData.address || '12, Anna Nagar Main Road, Chennai, Tamil Nadu - 600 040'}</p></div>
                 </div>
 
                 <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '15px' }}>Parent/Guardian Details</h3>
                 <div className="info-grid">
-                  <div className="info-field"><label>Guardian Name</label><p>Ramesh Kumar S.</p></div>
+                  <div className="info-field"><label>Guardian Name</label><p>{studentData.parentName || 'Ramesh Kumar S.'}</p></div>
                   <div className="info-field"><label>Relation</label><p>Father</p></div>
-                  <div className="info-field"><label>Guardian Contact</label><p>+91 98765 00001</p></div>
+                  <div className="info-field"><label>Guardian Contact</label><p>{studentData.parentPhone || '+91 98765 00001'}</p></div>
                 </div>
               </div>
             </div>
@@ -1117,24 +1336,22 @@ function StudentPortalPage() {
                   <div className="cell">Faculty Instructor</div>
                   <div className="cell">Syllabus Details</div>
                 </div>
-                {[
-                  { code: 'CS301', name: 'Data Structures', faculty: 'Dr. Ramesh Kumar' },
-                  { code: 'CS302', name: 'Operating Systems', faculty: 'Dr. Anand Rajan' },
-                  { code: 'CS303', name: 'DBMS', faculty: 'Dr. Priya Nair' },
-                  { code: 'CS304', name: 'Computer Networks', faculty: 'Dr. Kumar S.' },
-                  { code: 'CS305', name: 'Software Engineering', faculty: 'Dr. Anand Rajan' }
-                ].map(course => (
-                  <div className="table-row" key={course.code}>
-                    <div className="cell"><strong>{course.code}</strong></div>
-                    <div className="cell">{course.name}</div>
-                    <div className="cell">{course.faculty}</div>
-                    <div className="cell">
-                      <button className="material-link" style={{ padding: '6px 12px' }} onClick={() => setActiveSyllabus(course.name)}>
-                        View Syllabus
-                      </button>
+                {getStudentSubjects().length > 0 ? (
+                  getStudentSubjects().map(course => (
+                    <div className="table-row" key={course.code}>
+                      <div className="cell"><strong>{course.code}</strong></div>
+                      <div className="cell">{course.name}</div>
+                      <div className="cell">{course.faculty || advisorName}</div>
+                      <div className="cell">
+                        <button className="material-link" style={{ padding: '6px 12px' }} onClick={() => setActiveSyllabus(course.name)}>
+                          View Syllabus
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="table-row"><div className="cell">No curriculum subjects found in database for your semester.</div></div>
+                )}
               </div>
 
               {/* Syllabus Modal */}
@@ -1147,7 +1364,7 @@ function StudentPortalPage() {
                     </div>
                     <div className="company-modal-body">
                       <div className="academics-syllabus-list">
-                        {syllabusData[activeSyllabus]?.map((module, i) => (
+                        {getSyllabusModules(activeSyllabus).map((module, i) => (
                           <div className="syllabus-module" key={i}>
                             <h5>{module.split(' - ')[0]}</h5>
                             <p>{module.split(' - ')[1] || 'Detailed modules cover technical concepts, design, and practical exercises.'}</p>
@@ -1161,23 +1378,22 @@ function StudentPortalPage() {
 
               <h3 style={{ fontSize: '16.5px', fontWeight: '700', marginBottom: '15px' }}>Study Materials &amp; Lecture Notes</h3>
               <div className="data-table" style={{ marginBottom: '30px' }}>
-                {[
-                  { subject: 'Data Structures', name: 'Lecture Notes Module 1-3.pdf', size: '2.4 MB' },
-                  { subject: 'Operating Systems', name: 'Process Synchronization Manual.pdf', size: '1.8 MB' },
-                  { subject: 'DBMS', name: 'ER Modelling & SQL Joins.pdf', size: '3.1 MB' },
-                  { subject: 'Computer Networks', name: 'TCP Congestion Control slides.pdf', size: '4.2 MB' }
-                ].map((doc, idx) => (
-                  <div className="table-row" key={idx}>
-                    <div className="cell"><strong>{doc.subject}</strong></div>
-                    <div className="cell">{doc.name}</div>
-                    <div className="cell">File Size: {doc.size}</div>
-                    <div className="cell">
-                      <button className="material-link" onClick={() => alert(`Downloading ${doc.name}...`)}>
-                        Download PDF
-                      </button>
+                {getStudentSubjects().length > 0 ? (
+                  getStudentSubjects().map((subj, idx) => (
+                    <div className="table-row" key={idx}>
+                      <div className="cell"><strong>{subj.name}</strong></div>
+                      <div className="cell">{subj.name} Complete Lecture Notes.pdf</div>
+                      <div className="cell">File Size: 2.8 MB</div>
+                      <div className="cell">
+                        <button className="material-link" onClick={() => alert(`Downloading ${subj.name} Study Materials...`)}>
+                          Download PDF
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="table-row"><div className="cell">No materials loaded.</div></div>
+                )}
               </div>
 
               <h3 style={{ fontSize: '16.5px', fontWeight: '700', marginBottom: '15px' }}>Academic Calendar</h3>
@@ -1227,17 +1443,32 @@ function StudentPortalPage() {
                   <div className="cell">Lab Venue</div>
                   <div className="cell">Assigned Faculty</div>
                 </div>
-                {[
-                  { name: 'DBMS Laboratory', time: 'Tuesday 02:00 - 05:00 PM', venue: 'Systems Lab II', faculty: 'Dr. Priya Nair' },
-                  { name: 'Computer Networks Lab', time: 'Thursday 02:00 - 05:00 PM', venue: 'Networks Lab I', faculty: 'Dr. Kumar S.' }
-                ].map(lab => (
-                  <div className="table-row" key={lab.name}>
-                    <div className="cell"><strong>{lab.name}</strong></div>
-                    <div className="cell">{lab.time}</div>
-                    <div className="cell">{lab.venue}</div>
-                    <div className="cell">{lab.faculty}</div>
+                {getStudentSubjects().filter(s => s.code.endsWith('L') || s.name.toLowerCase().includes('lab')).length > 0 ? (
+                  getStudentSubjects().filter(s => s.code.endsWith('L') || s.name.toLowerCase().includes('lab')).map((lab, idx) => {
+                    let dayTime = "Refer to timetable";
+                    if (timetableData) {
+                      const matchingDay = timetableData.find(d => d.slots.includes(lab.code) || d.slots.some(slot => slot.startsWith(lab.code)));
+                      if (matchingDay) {
+                        dayTime = `${matchingDay.day} Afternoon (02:00 - 05:00 PM)`;
+                      }
+                    }
+                    return (
+                      <div className="table-row" key={idx}>
+                        <div className="cell"><strong>{lab.name}</strong></div>
+                        <div className="cell">{dayTime}</div>
+                        <div className="cell">{lab.name.toLowerCase().includes('network') ? 'Networks Lab I' : 'Systems Lab II'}</div>
+                        <div className="cell">{lab.faculty || advisorName}</div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="table-row">
+                    <div className="cell"><strong>No Laboratory Courses</strong></div>
+                    <div className="cell">N/A</div>
+                    <div className="cell">N/A</div>
+                    <div className="cell">N/A</div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
@@ -1467,7 +1698,7 @@ function StudentPortalPage() {
               <div className="fee-overview" style={{ marginBottom: '30px' }}>
                 <div className="summary-card">
                   <p>Books Currently Issued</p>
-                  <h2>2 Books</h2>
+                  <h2>{getIssuedBooks().length} Books</h2>
                 </div>
                 <div className="summary-card">
                   <p>Pending Library Fines</p>
@@ -1477,26 +1708,21 @@ function StudentPortalPage() {
 
               <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '15px' }}>Issued Book Details</h3>
               <div className="issued-books-list" style={{ marginBottom: '40px' }}>
-                <div className="library-book-card">
-                  <div className="book-details">
-                    <h5>Introduction to Algorithms</h5>
-                    <p>Author: Cormen, Leiserson • Call No: 005.1 COR</p>
+                {getIssuedBooks().map((book, idx) => (
+                  <div className="library-book-card" key={idx}>
+                    <div className="book-details">
+                      <h5>{book.title}</h5>
+                      <p>Author: {book.author} • Call No: {book.bookId}</p>
+                    </div>
+                    <div className="book-dates">
+                      <span style={{ color: '#0d6efd' }}>Issued: {book.issued}</span>
+                      <span style={{ color: '#dc3545' }}>Due: {book.due}</span>
+                    </div>
                   </div>
-                  <div className="book-dates">
-                    <span style={{ color: '#0d6efd' }}>Issued: 2025-05-20</span>
-                    <span style={{ color: '#dc3545' }}>Due: 2025-06-19</span>
-                  </div>
-                </div>
-                <div className="library-book-card">
-                  <div className="book-details">
-                    <h5>Computer Networks</h5>
-                    <p>Author: Andrew S. Tanenbaum • Call No: 004.6 TAN</p>
-                  </div>
-                  <div className="book-dates">
-                    <span style={{ color: '#0d6efd' }}>Issued: 2025-05-25</span>
-                    <span style={{ color: '#dc3545' }}>Due: 2025-06-24</span>
-                  </div>
-                </div>
+                ))}
+                {getIssuedBooks().length === 0 && (
+                  <p style={{ color: '#64748b' }}>No books currently issued.</p>
+                )}
               </div>
 
               <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '15px' }}>Book Catalog Search</h3>
@@ -1517,7 +1743,7 @@ function StudentPortalPage() {
                   <div className="cell">Available Copies</div>
                   <div className="cell">Action</div>
                 </div>
-                {libraryCatalog.filter(b => b.title.toLowerCase().includes(searchBook.toLowerCase())).map((book, idx) => (
+                {booksData.filter(b => b.title.toLowerCase().includes(searchBook.toLowerCase())).map((book, idx) => (
                   <div className="table-row" key={idx}>
                     <div className="cell"><strong>{book.title}</strong></div>
                     <div className="cell">{book.author}</div>
@@ -1538,30 +1764,22 @@ function StudentPortalPage() {
             <div className="page-content">
               <h2 className="page-title">Notices &amp; Announcements Board</h2>
               <div className="announcement-list">
-                <div className="announcement-item" style={{ padding: '20px 0' }}>
-                  <span className="stat-badge success" style={{ marginBottom: '8px' }}>Exam Schedule</span>
-                  <h4 style={{ fontSize: '16px', fontWeight: '700' }}>IA 2 Detailed Time Table</h4>
-                  <p style={{ fontSize: '14px', lineHeight: '1.6', marginTop: '6px' }}>
-                    The Internal Assessment Test 2 schedules for all branches (CSE, IT, AI&amp;DS, ECE, EEE, Mechanical) have been published on the respective departments' notice boards. Examinations will start June 15, 2025 at 09:00 AM daily.
-                  </p>
-                  <small>Posted on June 1, 2025</small>
-                </div>
-                <div className="announcement-item" style={{ padding: '20px 0' }}>
-                  <span className="stat-badge warning" style={{ marginBottom: '8px' }}>Academic Notice</span>
-                  <h4 style={{ fontSize: '16px', fontWeight: '700' }}>Autonomous Regulations Update</h4>
-                  <p style={{ fontSize: '14px', lineHeight: '1.6', marginTop: '6px' }}>
-                    The academic council has updated the course regulations for candidates admitted in the batch of 2021-25. The credit requirement has been adjusted from 165 to 162 total credits. Download the updated syllabus sheets from Documents.
-                  </p>
-                  <small>Posted on May 28, 2025</small>
-                </div>
-                <div className="announcement-item" style={{ padding: '20px 0' }}>
-                  <span className="stat-badge danger" style={{ marginBottom: '8px' }}>Placement Drive</span>
-                  <h4 style={{ fontSize: '16px', fontWeight: '700' }}>TATA Consultancy Services Recruitment Schedule</h4>
-                  <p style={{ fontSize: '14px', lineHeight: '1.6', marginTop: '6px' }}>
-                    TCS registration link on portal is active. Eligible candidates with a 6.0 CGPA threshold and maximum 1 backlog can apply. The registration closes on June 12, 2025.
-                  </p>
-                  <small>Posted on June 3, 2025</small>
-                </div>
+                {noticesData.length > 0 ? (
+                  noticesData.map((notice, idx) => (
+                    <div className="announcement-item" style={{ padding: '20px 0' }} key={idx}>
+                      <span className={`stat-badge ${notice.category === 'Exam' ? 'success' : notice.category === 'Holiday' ? 'warning' : 'danger'}`} style={{ marginBottom: '8px' }}>
+                        {notice.category}
+                      </span>
+                      <h4 style={{ fontSize: '16px', fontWeight: '700' }}>{notice.title}</h4>
+                      <p style={{ fontSize: '14px', lineHeight: '1.6', marginTop: '6px' }}>
+                        {notice.content}
+                      </p>
+                      <small>Posted on {notice.date}</small>
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ padding: '15px', color: '#64748b' }}>No recent announcements.</p>
+                )}
               </div>
             </div>
           )}
@@ -1661,7 +1879,7 @@ function StudentPortalPage() {
                 </div>
                 {leavesHistory.map((leave, idx) => (
                   <div className="table-row" key={idx}>
-                    <div className="cell"><strong>LEAVE-{leave.id}</strong></div>
+                    <div className="cell"><strong>LEAVE-{leave.id || leave._id?.slice(-4)}</strong></div>
                     <div className="cell">{leave.type}</div>
                     <div className="cell">{leave.from} to {leave.to}</div>
                     <div className="cell">{leave.reason}</div>
@@ -1684,19 +1902,51 @@ function StudentPortalPage() {
 
               <div className="tc-bonafide-grid">
                 {[
-                  { name: 'Bonafide Certificate', desc: 'Required for bank loans, passport applications, and address proof verification.' },
-                  { name: 'Semester Grade Sheet (Sem 4)', desc: 'Official transcript representing academic marks secured in Semester 4.' },
-                  { name: 'Exam Hall Ticket (IA 2)', desc: 'Admission voucher verified for the upcoming Internal Assessment Test 2.' },
-                  { name: 'College Smart ID Card Card', desc: 'Digital copy of candidate identification card verified by registry offices.' }
-                ].map((doc, idx) => (
-                  <div className="doc-card" key={idx}>
-                    <h4>{doc.name}</h4>
-                    <p>{doc.desc}</p>
-                    <button className="submit-btn" style={{ width: '100%' }} onClick={() => handleRequestDoc(doc.name)}>
-                      {downloadedDocs.includes(doc.name) ? 'Download Verified copy' : 'Generate Certificate'}
-                    </button>
-                  </div>
-                ))}
+                  { name: 'Bonafide Certificate', type: 'Bonafide', desc: 'Required for bank loans, passport applications, and address proof verification.' },
+                  { name: 'Course Completion Certificate', type: 'Course Completion', desc: 'Official certificate confirming course completion and duration.' },
+                  { name: 'Semester Grade Sheet (Sem 4)', type: 'GradeSheet', desc: 'Official transcript representing academic marks secured in Semester 4.' },
+                  { name: 'Exam Hall Ticket (IA 2)', type: 'HallTicket', desc: 'Admission voucher verified for the upcoming Internal Assessment Test 2.' },
+                  { name: 'College Smart ID Card', type: 'IDCard', desc: 'Digital copy of candidate identification card verified by registry offices.' }
+                ].map((doc, idx) => {
+                  const req = certificatesData.find(c => c.type === doc.type);
+                  let buttonText = 'Generate Certificate';
+                  let buttonAction = () => handleRequestDoc(doc.name);
+                  let isDisabled = false;
+
+                  if (doc.type === 'Bonafide' || doc.type === 'Course Completion') {
+                    if (!req) {
+                      buttonText = 'Request Certificate';
+                      buttonAction = () => handleRequestCertificate(doc.name);
+                    } else if (req.status === 'Pending') {
+                      buttonText = 'Pending Admin Approval';
+                      isDisabled = true;
+                    } else if (req.status === 'Approved') {
+                      buttonText = 'Print Approved Copy';
+                      buttonAction = () => handleRequestDoc(doc.name);
+                    } else if (req.status === 'Rejected') {
+                      buttonText = 'Rejected - Request Again';
+                      buttonAction = () => handleRequestCertificate(doc.name);
+                    }
+                  } else {
+                    // Grade Sheet / Hall Ticket / ID Card can be printed directly
+                    buttonText = 'Download Verified Copy';
+                  }
+
+                  return (
+                    <div className="doc-card" key={idx}>
+                      <h4>{doc.name}</h4>
+                      <p>{doc.desc}</p>
+                      <button 
+                        className="submit-btn" 
+                        style={{ width: '100%', background: isDisabled ? '#64748b' : '#1e3a8a' }} 
+                        onClick={buttonAction}
+                        disabled={isDisabled}
+                      >
+                        {buttonText}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1767,34 +2017,43 @@ function StudentPortalPage() {
               <div className="transport-grid" style={{ marginBottom: '40px' }}>
                 <div className="place-section" style={{ margin: '0', flex: '1' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '15px' }}>College Bus Routes</h3>
-                  <div className="transport-card" style={{ marginBottom: '15px' }}>
-                    <h4>Route No. 14 — Anna Nagar</h4>
-                    <p><strong>Pickup point:</strong> Anna Nagar Roundtana (07:15 AM)</p>
-                    <p><strong>Intermediate stops:</strong> Koyambedu, Maduravoyal, Poonamallee Bypass</p>
-                    <p><strong>Arrival:</strong> Campus (08:15 AM)</p>
-                  </div>
-                  <div className="transport-card">
-                    <h4>Route No. 22 — Tambaram</h4>
-                    <p><strong>Pickup point:</strong> Tambaram West Depot (07:00 AM)</p>
-                    <p><strong>Intermediate stops:</strong> Chromepet, Pallavaram, Poonamallee Bypass</p>
-                    <p><strong>Arrival:</strong> Campus (08:15 AM)</p>
-                  </div>
+                  {transportRoutes.length > 0 ? (
+                    transportRoutes.map((route, idx) => (
+                      <div className="transport-card" style={{ marginBottom: '15px' }} key={idx}>
+                        <h4>Bus No: {route.busNo} &mdash; {route.route}</h4>
+                        <p><strong>Route Area:</strong> {route.area}</p>
+                        <p><strong>Intermediate stops count:</strong> {route.stops} Stops</p>
+                        <p><strong>Driver:</strong> {route.driver} ({route.contact}) &bull; Status: {route.status}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p style={{ color: '#64748b' }}>No bus routes found in the database.</p>
+                  )}
                 </div>
 
                 <div className="place-section" style={{ margin: '0', flex: '1' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '15px' }}>Hostel Accommodations</h3>
-                  <div className="info-field" style={{ marginBottom: '15px' }}>
-                    <label>Block Allocation</label>
-                    <p>Boys Hostel - Block B</p>
-                  </div>
-                  <div className="info-field" style={{ marginBottom: '15px' }}>
-                    <label>Room Number</label>
-                    <p>Room 302 (3-Sharing)</p>
-                  </div>
-                  <div className="info-field">
-                    <label>Hostel Fee Status</label>
-                    <p style={{ color: '#0f5132', fontWeight: '700' }}>Paid (2024-2025 academic session)</p>
-                  </div>
+                  {hostelAllocation ? (
+                    <>
+                      <div className="info-field" style={{ marginBottom: '15px' }}>
+                        <label>Block Allocation</label>
+                        <p>{hostelAllocation.block}</p>
+                      </div>
+                      <div className="info-field" style={{ marginBottom: '15px' }}>
+                        <label>Room Number</label>
+                        <p>Room {hostelAllocation.room}</p>
+                      </div>
+                      <div className="info-field">
+                        <label>Hostel Fee Status</label>
+                        <p style={{ color: '#0f5132', fontWeight: '700' }}>Paid (Allocated on {hostelAllocation.date})</p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="info-field">
+                      <label>Allocation Status</label>
+                      <p style={{ color: '#991b1b', fontWeight: '700' }}>Not Allocated / Dayscholar</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1844,9 +2103,9 @@ function StudentPortalPage() {
                 </div>
                 {supportTickets.map((t, idx) => (
                   <div className="table-row" key={idx}>
-                    <div className="cell"><strong>{t.id}</strong></div>
+                    <div className="cell"><strong>{t.ticketId || t.id}</strong></div>
                     <div className="cell">{t.category}</div>
-                    <div className="cell">{t.desc}</div>
+                    <div className="cell">{t.title || t.desc}</div>
                     <div className="cell">{t.priority}</div>
                     <div className="cell">
                       <span className={`status-badge ${t.status === 'Open' ? 'warning' : 'success'}`}>{t.status}</span>

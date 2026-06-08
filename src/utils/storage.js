@@ -814,3 +814,48 @@ export const getAdminAllFees = async () => {
     return [];
   }
 };
+
+export const createStudentComplaint = async (complaintData) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/student/complaints`, {
+      method: "POST",
+      body: JSON.stringify(complaintData),
+    });
+    return await res.json();
+  } catch (error) {
+    return null;
+  }
+};
+
+export const getStudentComplaints = async (rollNo) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/student/complaints/${rollNo}`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const createCertificateRequest = async (certData) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/student/certificates`, {
+      method: "POST",
+      body: JSON.stringify(certData),
+    });
+    return await res.json();
+  } catch (error) {
+    return null;
+  }
+};
+
+export const getStudentCertificates = async (rollNo) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/student/certificates/${rollNo}`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
