@@ -6,22 +6,11 @@ import {
   saveClassAttendance, saveStudentMarks, uploadFacultyAssignment,
   deleteFacultyAssignment, getFacultyLeaveRequests, actionLeaveRequest,
   sendFacultyNotification, updateFacultyProfile, getMarks,
-  getAssignmentSubmissions
+  getAssignmentSubmissions, uploadFacultyPhoto
 } from '../utils/storage';
 import '../assets/css/faculty-portal.css';
 
 /* ─────────────── static data ─────────────── */
-const DEFAULT_STUDENTS = [
-  { roll: '21CS001', name: 'Arjun Ramesh',  cls: '21CS-A', att: 87, ia: 22, status: 'Active' },
-  { roll: '21CS002', name: 'Priya Lakshmi', cls: '21CS-A', att: 92, ia: 20, status: 'Active' },
-  { roll: '21CS003', name: 'Rahul Sharma',  cls: '21CS-A', att: 74, ia: 18, status: 'Low Att.' },
-  { roll: '21CS004', name: 'Sneha Patel',   cls: '21CS-B', att: 95, ia: 23, status: 'Active' },
-  { roll: '21CS005', name: 'Karthik Raj',   cls: '21CS-B', att: 68, ia: 15, status: 'At Risk' },
-  { roll: '21CS006', name: 'Divya Menon',   cls: '21CS-B', att: 88, ia: 19, status: 'Active' },
-  { roll: '21CS007', name: 'Arun Vijay',    cls: '21CS-A', att: 79, ia: 17, status: 'Active' },
-  { roll: '21CS008', name: 'Kavitha Rajan', cls: '21CS-B', att: 91, ia: 24, status: 'Active' },
-];
-
 const COURSES = [
   { id: 'c1', code: 'CS3351', name: 'Data Structures',         cls: '21CS-A', sem: 5, credits: 4, students: 60, classes: 24, done: 18, pct: 75 },
   { id: 'c2', code: 'CS3351', name: 'Data Structures',         cls: '21CS-B', sem: 5, credits: 4, students: 58, classes: 22, done: 15, pct: 68 },
@@ -44,19 +33,7 @@ const WEEKLY_TIMETABLE = {
 };
 const TIME_SLOTS = ['8:00–9:00', '9:00–10:00', '10:00–11:00', 'Lunch', '1:00–2:00', '2:00–3:00', '3:00–4:00'];
 
-const INIT_ASSIGNMENTS = [
-  { id: 1, title: 'Binary Tree Implementation', course: 'CS3351 / 21CS-A', due: '2025-06-10', maxMarks: 10, status: 'Active', submissions: 42 },
-  { id: 2, title: 'Sorting Algorithm Analysis',  course: 'CS3351 / 21CS-B', due: '2025-06-08', maxMarks: 10, status: 'Active', submissions: 38 },
-  { id: 3, title: 'Linked List Lab Program',     course: 'CS3352 / 21CS-A', due: '2025-05-30', maxMarks: 20, status: 'Closed', submissions: 60 },
-];
 
-const INIT_ATTENDANCE = () =>
-  DEFAULT_STUDENTS.map(s => ({
-    roll: s.roll,
-    name: s.name,
-    cls: s.cls,
-    present: true,
-  }));
 
 const SENT_MESSAGES = [
   { title: 'IA 2 Schedule Reminder',     to: '21CS-A + 21CS-B', date: 'June 1, 2025' },
@@ -65,12 +42,7 @@ const SENT_MESSAGES = [
   { title: 'Lab Viva Date Announcement', to: 'All My Students',  date: 'May 12, 2025' },
 ];
 
-const LEAVE_REQUESTS = [
-  { id: 1, name: 'Rahul Sharma',  roll: '21CS003', type: 'Medical Leave',   from: '2025-06-03', to: '2025-06-04', reason: 'Fever',           status: 'Pending'  },
-  { id: 2, name: 'Karthik Raj',   roll: '21CS005', type: 'Personal Leave',  from: '2025-06-01', to: '2025-06-01', reason: 'Family function', status: 'Pending'  },
-  { id: 3, name: 'Arjun Ramesh',  roll: '21CS001', type: 'Medical Leave',   from: '2025-05-20', to: '2025-05-21', reason: 'Doctor visit',    status: 'Approved' },
-  { id: 4, name: 'Divya Menon',   roll: '21CS006', type: 'Personal Leave',  from: '2025-05-15', to: '2025-05-15', reason: 'Event',           status: 'Rejected' },
-];
+
 
 /* ─────────────── helpers ─────────────── */
 function grade(val, max = 25) {
@@ -205,6 +177,7 @@ export default function FacultyPortalPage() {
     if (marksData.length > 0) {
       updateMarksForCourse();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [marksCourse]);
 
 
@@ -434,7 +407,11 @@ export default function FacultyPortalPage() {
         </div>
 
         <div className="fp-sidebar-profile">
-          <div className="fp-sidebar-avatar">{initials}</div>
+          <div className="fp-sidebar-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {facultyData.profilePhoto ? (
+              <img src={facultyData.profilePhoto} alt={facultyName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : initials}
+          </div>
           <div className="fp-sidebar-info">
             <span className="fp-sidebar-name">{facultyName}</span>
             <span className="fp-sidebar-emp">{facultyEmpId} &middot; {facultyDept}</span>
@@ -474,7 +451,11 @@ export default function FacultyPortalPage() {
           </div>
           <div className="fp-topbar-right">
             <div className="fp-topbar-user">
-              <div className="fp-topbar-avatar">{initials}</div>
+              <div className="fp-topbar-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {facultyData.profilePhoto ? (
+                  <img src={facultyData.profilePhoto} alt={facultyName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : initials}
+              </div>
               <div className="fp-topbar-userinfo">
                 <span className="fp-topbar-name">{facultyName}</span>
                 <span className="fp-topbar-designation">{facultyDesignation}</span>
@@ -626,10 +607,50 @@ export default function FacultyPortalPage() {
               <div className="fp-profile-layout">
                 {/* Left card */}
                 <div className="fp-card fp-profile-left-card">
-                  <div className="fp-profile-avatar-lg">{initials}</div>
+                  <div className="fp-profile-avatar-lg" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {facultyData.profilePhoto ? (
+                      <img src={facultyData.profilePhoto} alt={facultyName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : initials}
+                  </div>
                   <h3 className="fp-profile-name">{facultyData.name || profileForm.name}</h3>
                   <p className="fp-profile-desig">{facultyData.designation || profileForm.designation}</p>
                   <span className="fp-badge fp-badge--dept">{deptFull[facultyDept] || facultyDept}</span>
+                  <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+                    <label htmlFor="faculty-photo-upload" style={{
+                      padding: '6px 14px',
+                      background: '#1e3a5f',
+                      color: '#fff',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      transition: 'background 0.2s',
+                    }}>
+                      Upload Photo
+                    </label>
+                    <input 
+                      id="faculty-photo-upload" 
+                      type="file" 
+                      accept="image/*" 
+                      style={{ display: 'none' }} 
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onloadend = async () => {
+                          const base64Photo = reader.result;
+                          const res = await uploadFacultyPhoto(facultyEmpId, base64Photo);
+                          if (res && res.success) {
+                            setFacultyData(prev => ({ ...prev, profilePhoto: base64Photo }));
+                            alert('Profile photo updated successfully!');
+                          } else {
+                            alert('Failed to update profile photo.');
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                  </div>
                   <div className="fp-profile-stats">
                     <div className="fp-pstat"><span className="fp-pstat-val">3</span><span className="fp-pstat-label">Courses</span></div>
                     <div className="fp-pstat"><span className="fp-pstat-val">{facultyStudents.length}</span><span className="fp-pstat-label">Students</span></div>

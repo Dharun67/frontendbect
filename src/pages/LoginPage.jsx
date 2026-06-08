@@ -2,18 +2,15 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import clgLogo from '../assets/images/CLGLOGO.png';
-import { useForm, useValidation } from '../hooks/useForm';
+import { useForm } from '../hooks/useForm';
 import { FormInput, FormButton, FormMessage } from '../components/ui/FormComponents';
 import { verifyLogin } from '../utils/storage';
 import '../assets/css/professional.css';
 import '../assets/css/login.css';
 
 function LoginPage() {
-  const [tab, setTab] = useState('signin');
   const [siMsg, setSiMsg] = useState({ type: '', text: '' });
-  const [suMsg, setSuMsg] = useState({ type: '', text: '' });
   const navigate = useNavigate();
-  const validation = useValidation();
 
   const signInForm = useForm({ userType: 'student', userId: '', password: '' });
 

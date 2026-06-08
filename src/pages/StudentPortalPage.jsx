@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clgLogo from '../assets/images/CLGLOGO.png';
-import { getSessionUser, logoutUser, getAttendance, getFees, getTimetable, getAssignments, getNotifications, getResults, submitAssignment, payFeesOnline, submitLeaveApplication, getLeaveApplications, getStudentHallTicket } from '../utils/storage';
+import { getSessionUser, logoutUser, getAttendance, getFees, getTimetable, getAssignments, getNotifications, getResults, submitAssignment, payFeesOnline, submitLeaveApplication, getLeaveApplications, getStudentHallTicket, uploadStudentPhoto } from '../utils/storage';
 import '../assets/css/student-portal.css';
 
 function StudentPortalPage() {
@@ -56,7 +56,7 @@ function StudentPortalPage() {
   const [leaveReason, setLeaveReason] = useState('');
 
   // Documents Download status
-  const [downloadedDocs, setDownloadedDocs] = useState([]);
+  const [downloadedDocs] = useState([]);
 
   // Clubs and Events Registration
   const [joinedClubs, setJoinedClubs] = useState([]);
@@ -756,7 +756,11 @@ function StudentPortalPage() {
 
           {/* Profile Menu */}
           <div className="profile-menu" onClick={() => setShowProfileMenu(!showProfileMenu)}>
-            <div className="profile-pic">{initials}</div>
+            <div className="profile-pic" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {studentData.profilePhoto ? (
+                <img src={studentData.profilePhoto} alt={studentName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : initials}
+            </div>
             <div className="profile-info">
               <strong>{studentName.split(' ')[0]}</strong>
               <span>{studentRoll}</span>
@@ -822,7 +826,11 @@ function StudentPortalPage() {
                     <span>Department of {studentDept === 'CSE' ? 'Computer Science' : studentDept} • Semester {studentSem} • {studentRoll}</span>
                   </div>
                 </div>
-                <div className="student-avatar">{initials}</div>
+                <div className="student-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {studentData.profilePhoto ? (
+                    <img src={studentData.profilePhoto} alt={studentName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : initials}
+                </div>
               </div>
 
               <div className="stats-grid">
@@ -972,11 +980,51 @@ function StudentPortalPage() {
               <h2 className="page-title">Personal Profile</h2>
               <div className="profile-card">
                 <div className="profile-header">
-                  <div className="profile-avatar-large">{initials}</div>
+                  <div className="profile-avatar-large" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {studentData.profilePhoto ? (
+                      <img src={studentData.profilePhoto} alt={studentName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : initials}
+                  </div>
                   <div className="profile-basic">
                     <h3>{studentName}</h3>
                     <p>{studentRoll}</p>
                     <span className="dept-badge">{studentDept} Dept • Semester {studentSem}</span>
+                    <div style={{ marginTop: '12px' }}>
+                      <label htmlFor="student-photo-upload" style={{
+                        padding: '6px 12px',
+                        background: '#1e3a5f',
+                        color: '#fff',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        display: 'inline-block'
+                      }}>
+                        Change Profile Photo
+                      </label>
+                      <input 
+                        id="student-photo-upload" 
+                        type="file" 
+                        accept="image/*" 
+                        style={{ display: 'none' }} 
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onloadend = async () => {
+                            const base64Photo = reader.result;
+                            const res = await uploadStudentPhoto(studentRoll, base64Photo);
+                            if (res && res.success) {
+                              setStudentData(prev => ({ ...prev, profilePhoto: base64Photo }));
+                              alert('Profile photo updated successfully!');
+                            } else {
+                              alert('Failed to update profile photo.');
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
                 

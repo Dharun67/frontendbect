@@ -140,7 +140,8 @@ export const payFeesOnline = async (rollNo, amount, description) => {
 export const getTimetable = async (dept, sem) => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/student/timetable?dept=${dept}&sem=${sem}`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -149,7 +150,8 @@ export const getTimetable = async (dept, sem) => {
 export const getAssignments = async (rollNo) => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/student/assignments/${rollNo}`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -179,7 +181,8 @@ export const getStudentHallTicket = async (rollNo) => {
 export const getAssignmentSubmissions = async (assignmentId) => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/faculty/assignments/${assignmentId}/submissions`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -188,7 +191,8 @@ export const getAssignmentSubmissions = async (assignmentId) => {
 export const getLeaveApplications = async (rollNo) => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/student/leaves/${rollNo}`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -209,7 +213,8 @@ export const submitLeaveApplication = async (rollNo, leaveData) => {
 export const getNotifications = async (rollNo) => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/student/notifications/${rollNo}`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -266,7 +271,8 @@ export const getStudents = async (dept) => {
       ? `${API_BASE}/faculty/students?dept=${dept}`
       : `${API_BASE}/admin/students`;
     const res = await authenticatedFetch(url);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -299,7 +305,8 @@ export const saveStudentMarks = async (marksCourse, marksData) => {
 export const getFacultyAssignments = async () => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/faculty/assignments`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -331,7 +338,8 @@ export const deleteFacultyAssignment = async (id) => {
 export const getFacultyLeaveRequests = async () => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/faculty/leaves`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -367,7 +375,8 @@ export const sendFacultyNotification = async (notifData) => {
 export const getAdminStudents = async () => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/admin/students`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -411,7 +420,8 @@ export const deleteAdminStudent = async (id) => {
 export const getAdminFaculty = async () => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/admin/faculty`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -455,7 +465,8 @@ export const deleteAdminFaculty = async (id) => {
 export const getNotices = async () => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/admin/notices`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -489,7 +500,8 @@ export const deleteAdminNotice = deleteNotice;
 export const getEvents = async () => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/admin/events`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -565,7 +577,8 @@ export const saveWebsiteSettings = async (settings) => {
 export const getAdminActivityLogs = async () => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/admin/activity-logs`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -574,7 +587,8 @@ export const getAdminActivityLogs = async () => {
 export const getAdmissionsEnquiries = async () => {
   try {
     const res = await authenticatedFetch(`${API_BASE}/admin/enquiries`);
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -674,4 +688,129 @@ export const getAdminUsers = async () => {
 
 export const saveStudents = async () => {
   // No-op: database has individual CRUD endpoints
+};
+
+export const getAdminDepartments = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/departments`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const getAdminCourses = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/courses`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const getAdminSubjects = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/subjects`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const getAdminBooks = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/library/books`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const getAdminHostelAllocations = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/hostel/allocations`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const getAdminTransportRoutes = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/transport/routes`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const getAdminCertificateRequests = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/certificates`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const approveCertificateRequest = async (id) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/certificates/${id}/action`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Approved" }),
+    });
+    return await res.json();
+  } catch (error) {
+    return null;
+  }
+};
+
+export const rejectCertificateRequest = async (id) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/certificates/${id}/action`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Rejected" }),
+    });
+    return await res.json();
+  } catch (error) {
+    return null;
+  }
+};
+
+export const getAdminComplaints = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/complaints`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const resolveComplaintTicket = async (id) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/complaints/${id}/resolve`, {
+      method: "PATCH",
+    });
+    return await res.json();
+  } catch (error) {
+    return null;
+  }
+};
+
+export const getAdminAllFees = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/fees/all`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
 };

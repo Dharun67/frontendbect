@@ -4,11 +4,15 @@ import clgLogo from '../assets/images/CLGLOGO.png';
 import {
   getSessionUser, logoutUser,
   getAdminStudents, addAdminStudent, updateAdminStudent, deleteAdminStudent,
-  getAdminFaculty, addAdminFaculty, updateAdminFaculty, deleteAdminFaculty,
+  getAdminFaculty, addAdminFaculty, deleteAdminFaculty,
   getNotices, addAdminNotice, deleteAdminNotice,
   getEvents, addAdminEvent, deleteAdminEvent,
-  getWebsiteSettings, saveWebsiteSettings, getAdminActivityLogs, getAdmissionsEnquiries,
-  updateAdmissionStatus
+  getAdminActivityLogs, getAdmissionsEnquiries,
+  updateAdmissionStatus,
+  getAdminDepartments, getAdminCourses, getAdminSubjects,
+  getAdminBooks, getAdminHostelAllocations, getAdminTransportRoutes,
+  getAdminCertificateRequests, approveCertificateRequest, rejectCertificateRequest,
+  getAdminComplaints, resolveComplaintTicket, getAdminAllFees
 } from '../utils/storage';
 import '../assets/css/admin-portal.css';
 
@@ -81,6 +85,26 @@ function AdminPortalPage() {
   const prevEnquiryCount = useRef(0);
   const navigate = useNavigate();
 
+  // Search and filter states for new pages
+  const [courseSearch, setCourseSearch] = useState('');
+  const [courseDeptFilter, setCourseDeptFilter] = useState('');
+  const [courseSemFilter, setCourseSemFilter] = useState('');
+
+  const [subjectSearch, setSubjectSearch] = useState('');
+  const [subjectDeptFilter, setSubjectDeptFilter] = useState('');
+  const [subjectSemFilter, setSubjectSemFilter] = useState('');
+
+  const [bookSearch, setBookSearch] = useState('');
+  const [bookCatFilter, setBookCatFilter] = useState('');
+
+  const [certSearch, setCertSearch] = useState('');
+  const [certTypeFilter, setCertTypeFilter] = useState('');
+  const [certStatusFilter, setCertStatusFilter] = useState('');
+
+  const [feeSearch, setFeeSearch] = useState('');
+  const [feeDeptFilter, setFeeDeptFilter] = useState('');
+  const [feeStatusFilter, setFeeStatusFilter] = useState('');
+
   const [stuData, setStuData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [facultyData, setFacultyData] = useState([]);
@@ -88,7 +112,17 @@ function AdminPortalPage() {
   const [events, setEvents] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [enquiries, setEnquiries] = useState([]);
-  const [websiteSettings, setWebsiteSettings] = useState(null);
+
+  // Database-driven dynamic collections
+  const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [books, setBooks] = useState([]);
+  const [hostelAllocations, setHostelAllocations] = useState([]);
+  const [transportRoutes, setTransportRoutes] = useState([]);
+  const [certificates, setCertificates] = useState([]);
+  const [complaints, setComplaints] = useState([]);
+  const [allFees, setAllFees] = useState([]);
 
   const [newStudent, setNewStudent] = useState({ name: '', roll: '', dept: 'CSE', email: '', phone: '', password: '', sem: 1, bloodGroup: 'O+', dob: '' });
   const [newFaculty, setNewFaculty] = useState({ name: '', empId: '', dept: 'CSE', designation: 'Asst. Professor', email: '', phone: '', qualification: 'Ph.D', experience: '', specialization: '', password: '' });
@@ -116,20 +150,39 @@ function AdminPortalPage() {
       }
 
       try {
-        const [students, faculty, noticeList, eventList, logs, settings] = await Promise.all([
+        const [
+          students, faculty, noticeList, eventList, logs,
+          depts, crs, subs, bks, hostel, transport, certs, comps, fees
+        ] = await Promise.all([
           getAdminStudents(),
           getAdminFaculty(),
           getNotices(),
           getEvents(),
           getAdminActivityLogs(),
-          getWebsiteSettings(),
+          getAdminDepartments(),
+          getAdminCourses(),
+          getAdminSubjects(),
+          getAdminBooks(),
+          getAdminHostelAllocations(),
+          getAdminTransportRoutes(),
+          getAdminCertificateRequests(),
+          getAdminComplaints(),
+          getAdminAllFees(),
         ]);
         setStuData(students || []);
         setFacultyData(faculty || []);
         setNotices(noticeList || []);
         setEvents(eventList || []);
         setActivityLogs(logs || []);
-        setWebsiteSettings(settings);
+        setDepartments(depts || []);
+        setCourses(crs || []);
+        setSubjects(subs || []);
+        setBooks(bks || []);
+        setHostelAllocations(hostel || []);
+        setTransportRoutes(transport || []);
+        setCertificates(certs || []);
+        setComplaints(comps || []);
+        setAllFees(fees || []);
         await loadEnquiries();
       } catch (err) {
         console.error('Error loading admin data:', err);
@@ -151,7 +204,7 @@ function AdminPortalPage() {
   const handleAdmissionStatus = async (id, status, notes = '') => {
     const updated = await updateAdmissionStatus(id, status, notes);
     if (updated) {
-      setEnquiries(prev => prev.map(e => e._id === id ? { ...e, status: updated.status, reviewNotes: updated.reviewNotes, reviewedBy: updated.reviewedBy } : e));
+      setEnquiries(prev => prev.map(e => (e._id === id || e.id === id) ? { ...e, status: updated.status, reviewNotes: updated.reviewNotes, reviewedBy: updated.reviewedBy } : e));
       setAdmissionDetailModal({ open: false, data: null });
       setReviewNotes('');
     }
@@ -161,11 +214,11 @@ function AdminPortalPage() {
 
   const filteredStudents = stuData.filter(s => {
     const q = stuSearch.toLowerCase();
-    return !q || s.name.toLowerCase().includes(q) || s.roll.toLowerCase().includes(q) || s.dept.toLowerCase().includes(q);
+    return !q || s.name?.toLowerCase().includes(q) || s.roll?.toLowerCase().includes(q) || s.dept?.toLowerCase().includes(q);
   });
   const filteredFaculty = facultyData.filter(f => {
     const q = facultySearch.toLowerCase();
-    return !q || f.name.toLowerCase().includes(q) || f.empId.toLowerCase().includes(q) || f.dept.toLowerCase().includes(q);
+    return !q || f.name?.toLowerCase().includes(q) || f.empId?.toLowerCase().includes(q) || f.dept?.toLowerCase().includes(q);
   });
 
   const handleLogout = async () => { await logoutUser(); navigate('/portal'); };
@@ -390,11 +443,20 @@ function AdminPortalPage() {
       <div className="ap-table-wrap">
         <div className="ap-scroll-table">
           <table className="ap-table">
-            <thead><tr><th>#</th><th>Roll No.</th><th>Name</th><th>Dept.</th><th>Sem</th><th>Email</th><th>Phone</th><th>Blood</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>#</th><th>Photo</th><th>Roll No.</th><th>Name</th><th>Dept.</th><th>Sem</th><th>Email</th><th>Phone</th><th>Blood</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {filteredStudents.map((s,i) => (
                 <tr key={s._id || s.id}>
                   <td>{i+1}</td>
+                  <td>
+                    {s.profilePhoto ? (
+                      <img src={s.profilePhoto} alt={s.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#3b82f6,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13 }}>
+                        {s.name?.charAt(0)}
+                      </div>
+                    )}
+                  </td>
                   <td style={{fontWeight:700,color:'#2563eb'}}>{s.roll}</td>
                   <td style={{fontWeight:600}}>{s.name}</td>
                   <td><span className="badge badge-blue">{s.dept}</span></td>
@@ -455,11 +517,20 @@ function AdminPortalPage() {
       <div className="ap-table-wrap">
         <div className="ap-scroll-table">
           <table className="ap-table">
-            <thead><tr><th>#</th><th>Emp ID</th><th>Name</th><th>Dept.</th><th>Designation</th><th>Qualification</th><th>Specialization</th><th>Experience</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>#</th><th>Photo</th><th>Emp ID</th><th>Name</th><th>Dept.</th><th>Designation</th><th>Qualification</th><th>Specialization</th><th>Experience</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {filteredFaculty.map((f,i) => (
                 <tr key={f._id || f.id}>
                   <td>{i+1}</td>
+                  <td>
+                    {f.profilePhoto ? (
+                      <img src={f.profilePhoto} alt={f.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#10b981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13 }}>
+                        {f.name?.charAt(0)}
+                      </div>
+                    )}
+                  </td>
                   <td style={{fontWeight:700,color:'#2563eb'}}>{f.empId}</td>
                   <td style={{fontWeight:600}}>{f.name}</td>
                   <td><span className="badge badge-blue">{f.dept}</span></td>
@@ -493,32 +564,25 @@ function AdminPortalPage() {
   const renderDepartments = () => (
     <div className="ap-page">
       <div className="ap-page-header">
-        <div><h2>Department Management</h2><p>6 departments across Best Engineering College</p></div>
+        <div><h2>Department Management</h2><p>{departments.length} departments across Best Engineering College</p></div>
         <div className="ap-page-actions">
           <button className="ap-btn sm gold" onClick={()=>alert('Create Department: Opens new department setup form')}>+ Create Department</button>
         </div>
       </div>
       <div className="ap-dept-grid">
-        {[
-          ['','Computer Science & Engineering','Dr. Ramesh Kumar','62 Faculty','1,200 Students','8 UG','4 PG','15 Labs','NAAC A+ | NBA','#3b82f6'],
-          ['','Electronics & Communication','Dr. Anand Rajan','48 Faculty','980 Students','7 UG','3 PG','12 Labs','NAAC A+ | NBA','#8b5cf6'],
-          ['','Mechanical Engineering','Prof. Kumar Selvam','42 Faculty','850 Students','6 UG','3 PG','14 Labs','NAAC A | NBA','#f59e0b'],
-          ['','Civil Engineering','Dr. Meena Thangaraj','38 Faculty','720 Students','6 UG','2 PG','10 Labs','NAAC A | NBA','#10b981'],
-          ['','Information Technology','Dr. Priya Nair','35 Faculty','650 Students','6 UG','2 PG','11 Labs','NAAC A+ | NBA','#06b6d4'],
-          ['','Biotechnology','Dr. Lakshmi Venkatesan','28 Faculty','420 Students','5 UG','2 PG','8 Labs','NAAC A Accredited','#ec4899'],
-        ].map(([icon,name,hod,f,s,ug,pg,labs,acc,color]) => (
-          <div className="ap-dept-card" key={name}>
-            <div className="ap-dept-icon" style={{background:`${color}20`,color}}>{icon}</div>
-            <h4>{name}</h4>
-            <p style={{fontWeight:600,color:'#374151',marginBottom:10}}>HOD: {hod}</p>
+        {departments.map((d) => (
+          <div className="ap-dept-card" key={d._id || d.id}>
+            <div className="ap-dept-icon" style={{background:`${d.color}20`,color:d.color}}>{d.icon}</div>
+            <h4>{d.name}</h4>
+            <p style={{fontWeight:600,color:'#374151',marginBottom:10}}>HOD: {d.hod}</p>
             <div className="ap-dept-meta">
-              <span>{f}</span><span>{s}</span><span>{labs}</span>
-              <span>{ug} Courses</span><span>{pg} PG</span>
+              <span>{d.facultyCount}</span><span>{d.studentCount}</span><span>{d.labCount}</span>
+              <span>{d.ugCourses} Courses</span><span>{d.pgCourses} PG</span>
             </div>
-            <div style={{fontSize:12,color:'#10b981',fontWeight:700,marginBottom:14,background:'#f0fdf4',padding:'4px 10px',borderRadius:6,display:'inline-block'}}>{acc}</div>
+            <div style={{fontSize:12,color:'#10b981',fontWeight:700,marginBottom:14,background:'#f0fdf4',padding:'4px 10px',borderRadius:6,display:'inline-block'}}>{d.accreditation}</div>
             <div style={{display:'flex',gap:8}}>
-              <button className="ap-btn sm outline" style={{flex:1}} onClick={()=>alert(`${name}\nHOD: ${hod}\n${f}, ${s}\nAccreditation: ${acc}`)}>View Details</button>
-              <button className="ap-btn sm ghost" onClick={()=>alert(`Edit department: ${name}`)}>Edit</button>
+              <button className="ap-btn sm outline" style={{flex:1}} onClick={()=>alert(`${d.name}\nHOD: ${d.hod}\n${d.facultyCount}, ${d.studentCount}\nAccreditation: ${d.accreditation}`)}>View Details</button>
+              <button className="ap-btn sm ghost" onClick={()=>alert(`Edit department: ${d.name}`)}>Edit</button>
             </div>
           </div>
         ))}
@@ -526,167 +590,227 @@ function AdminPortalPage() {
     </div>
   );
 
-  const renderCourses = () => (
-    <div className="ap-page">
-      <div className="ap-page-header">
-        <div><h2>Course Management</h2><p>All academic programs  20 courses listed</p></div>
-        <div className="ap-page-actions">
-          <button className="ap-btn sm gold" onClick={()=>openModal('course')}>+ Add Course</button>
-        </div>
-      </div>
-      <div className="ap-controls">
-        <input placeholder=" Search by code or name..." />
-        <select><option>All Departments</option>{['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}</select>
-        <select><option>All Semesters</option>{[1,2,3,4,5,6,7,8].map(s=><option key={s}>Semester {s}</option>)}</select>
-      </div>
-      <div className="ap-table-wrap">
-        <div className="ap-scroll-table">
-          <table className="ap-table">
-            <thead><tr><th>#</th><th>Code</th><th>Course Name</th><th>Dept</th><th>Sem</th><th>Credits</th><th>Type</th><th>Faculty</th><th>Students</th><th>Actions</th></tr></thead>
-            <tbody>
-              {[
-                ['CS501','Data Structures & Algorithms','CSE',5,4,'Core','Dr. Ramesh Kumar',245],
-                ['CS502','Operating Systems','CSE',5,4,'Core','Dr. Anand Mohan',245],
-                ['CS503','Database Management Systems','CSE',5,4,'Core','Dr. Priya Nair',245],
-                ['CS504','Computer Networks','CSE',5,3,'Core','Prof. Kumar Raj',245],
-                ['CS506','Artificial Intelligence','CSE',7,4,'Elective','Dr. Ramesh Kumar',182],
-                ['CS507','Machine Learning','CSE',7,4,'Elective','Dr. Deepa S',195],
-                ['EC501','VLSI Design','ECE',5,4,'Core','Dr. Anand Rajan',198],
-                ['EC502','Digital Signal Processing','ECE',5,4,'Core','Dr. Kavitha P',198],
-                ['ME501','Thermal Engineering','Mech',5,4,'Core','Prof. Kumar Selvam',175],
-                ['IT501','Web Technologies','IT',5,3,'Core','Dr. Priya Nair',135],
-              ].map(([code,name,dept,sem,credits,type,faculty,students],i) => (
-                <tr key={code}>
-                  <td>{i+1}</td>
-                  <td style={{fontWeight:700,color:'#2563eb'}}>{code}</td>
-                  <td style={{fontWeight:600}}>{name}</td>
-                  <td><span className="badge badge-blue">{dept}</span></td>
-                  <td>{sem}</td><td><span className="badge badge-purple">{credits}</span></td>
-                  <td><span className={type==='Core'?'badge-ok':'badge-warn'}>{type}</span></td>
-                  <td style={{fontSize:12}}>{faculty}</td><td>{students}</td>
-                  <td>
-                    <button className="ap-act-btn edit" onClick={()=>alert(`Edit Course:\nCode: ${code}\nName: ${name}`)}>Edit</button>
-                    <button className="ap-act-btn del" onClick={()=>alert('Delete confirmation')}>Del</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+  const renderCourses = () => {
+    const filteredCourses = courses.filter(c => {
+      const q = courseSearch.toLowerCase();
+      const matchSearch = !q || c.code?.toLowerCase().includes(q) || c.name?.toLowerCase().includes(q);
+      const matchDept = !courseDeptFilter || c.dept === courseDeptFilter;
+      const matchSem = !courseSemFilter || c.sem === parseInt(courseSemFilter);
+      return matchSearch && matchDept && matchSem;
+    });
 
-  const renderSubjects = () => (
-    <div className="ap-page">
-      <div className="ap-page-header">
-        <div><h2>Subject Management</h2><p>Create and map subjects to courses and semesters</p></div>
-        <div className="ap-page-actions">
-          <button className="ap-btn sm gold" onClick={()=>openModal('subject')}>+ Create Subject</button>
+    return (
+      <div className="ap-page">
+        <div className="ap-page-header">
+          <div><h2>Course Management</h2><p>All academic programs — {courses.length} courses listed</p></div>
+          <div className="ap-page-actions">
+            <button className="ap-btn sm gold" onClick={()=>openModal('course')}>+ Add Course</button>
+          </div>
+        </div>
+        <div className="ap-controls">
+          <input 
+            placeholder=" Search by code or name..." 
+            value={courseSearch}
+            onChange={e=>setCourseSearch(e.target.value)}
+          />
+          <select value={courseDeptFilter} onChange={e=>setCourseDeptFilter(e.target.value === 'All Departments' ? '' : e.target.value)}>
+            <option>All Departments</option>
+            {['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}
+          </select>
+          <select value={courseSemFilter} onChange={e=>setCourseSemFilter(e.target.value === 'All Semesters' ? '' : e.target.value)}>
+            <option>All Semesters</option>
+            {[1,2,3,4,5,6,7,8].map(s=><option key={s} value={s}>Semester {s}</option>)}
+          </select>
+        </div>
+        <div className="ap-table-wrap">
+          <div className="ap-scroll-table">
+            <table className="ap-table">
+              <thead><tr><th>#</th><th>Code</th><th>Course Name</th><th>Dept</th><th>Sem</th><th>Credits</th><th>Type</th><th>Faculty</th><th>Students</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filteredCourses.map((c, i) => (
+                  <tr key={c._id || c.code}>
+                    <td>{i+1}</td>
+                    <td style={{fontWeight:700,color:'#2563eb'}}>{c.code}</td>
+                    <td style={{fontWeight:600}}>{c.name}</td>
+                    <td><span className="badge badge-blue">{c.dept}</span></td>
+                    <td>{c.sem}</td>
+                    <td><span className="badge badge-purple">{c.credits}</span></td>
+                    <td><span className={c.type==='Core'?'badge-ok':'badge-warn'}>{c.type}</span></td>
+                    <td style={{fontSize:12}}>{c.faculty}</td>
+                    <td>{c.studentsCount || 0}</td>
+                    <td>
+                      <button className="ap-act-btn edit" onClick={()=>alert(`Edit Course:\nCode: ${c.code}\nName: ${c.name}`)}>Edit</button>
+                      <button className="ap-act-btn del" onClick={()=>alert('Delete confirmation')}>Del</button>
+                    </td>
+                  </tr>
+                ))}
+                {filteredCourses.length === 0 && (
+                  <tr><td colSpan="10" style={{textAlign:'center',padding:20,color:'#64748b'}}>No courses found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <div className="ap-controls">
-        <input placeholder=" Search subjects..."/>
-        <select><option>All Departments</option>{['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}</select>
-        <select><option>All Semesters</option>{[1,2,3,4,5,6,7,8].map(s=><option key={s}>Semester {s}</option>)}</select>
-      </div>
-      <div className="ap-table-wrap">
-        <div className="ap-scroll-table">
-          <table className="ap-table">
-            <thead><tr><th>#</th><th>Subject Code</th><th>Subject Name</th><th>Dept</th><th>Semester</th><th>Credits</th><th>L-T-P</th><th>Faculty Assigned</th><th>Actions</th></tr></thead>
-            <tbody>
-              {[
-                ['CS501','Data Structures','CSE',5,4,'3-1-0','Dr. Ramesh Kumar'],
-                ['CS502','Operating Systems','CSE',5,4,'3-1-0','Dr. Anand Mohan'],
-                ['CS503','DBMS','CSE',5,4,'3-0-1','Dr. Priya Nair'],
-                ['CS504','Computer Networks','CSE',5,3,'3-0-0','Prof. Kumar Raj'],
-                ['CS505L','DBMS Lab','CSE',5,1,'0-0-2','Dr. Priya Nair'],
-                ['EC501','VLSI Design','ECE',5,4,'3-1-0','Dr. Anand Rajan'],
-                ['EC502','DSP','ECE',5,4,'3-1-0','Dr. Kavitha P'],
-                ['ME501','Thermal Engg','Mech',5,4,'3-1-0','Prof. Kumar S'],
-                ['IT501','Web Technologies','IT',5,3,'3-0-1','Dr. Priya Nair'],
-                ['BT501','Genetic Engg','Biotech',5,4,'3-1-0','Dr. Lakshmi V'],
-              ].map(([code,name,dept,sem,credits,ltp,faculty],i) => (
-                <tr key={code}>
-                  <td>{i+1}</td>
-                  <td style={{fontWeight:700,color:'#2563eb'}}>{code}</td>
-                  <td style={{fontWeight:600}}>{name}</td>
-                  <td><span className="badge badge-blue">{dept}</span></td>
-                  <td>{sem}</td>
-                  <td><span className="badge badge-purple">{credits}</span></td>
-                  <td><span className="badge badge-cyan">{ltp}</span></td>
-                  <td style={{fontSize:12}}>{faculty}</td>
-                  <td>
-                    <button className="ap-act-btn edit" onClick={()=>alert(`Edit Subject: ${name}`)}>Edit</button>
-                    <button className="ap-act-btn del" onClick={()=>alert('Delete confirmation')}>Del</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
-  const renderAdmissions = () => (
-    <div className="ap-page">
-      <div className="ap-page-header">
-        <div><h2>Admissions Management</h2><p>Academic Year 2025-26 application tracking</p></div>
-        <div className="ap-page-actions">
-          <button className="ap-btn sm" onClick={()=>alert('Download Merit List PDF')}> Merit List</button>
-          <button className="ap-btn sm gold" onClick={()=>openModal('admission')}>+ New Application</button>
+  const renderSubjects = () => {
+    const filteredSubjects = subjects.filter(s => {
+      const q = subjectSearch.toLowerCase();
+      const matchSearch = !q || s.code?.toLowerCase().includes(q) || s.name?.toLowerCase().includes(q);
+      const matchDept = !subjectDeptFilter || s.dept === subjectDeptFilter;
+      const matchSem = !subjectSemFilter || s.sem === parseInt(subjectSemFilter);
+      return matchSearch && matchDept && matchSem;
+    });
+
+    return (
+      <div className="ap-page">
+        <div className="ap-page-header">
+          <div><h2>Subject Management</h2><p>Create and map subjects to courses and semesters</p></div>
+          <div className="ap-page-actions">
+            <button className="ap-btn sm gold" onClick={()=>openModal('subject')}>+ Create Subject</button>
+          </div>
+        </div>
+        <div className="ap-controls">
+          <input 
+            placeholder=" Search subjects..."
+            value={subjectSearch}
+            onChange={e=>setSubjectSearch(e.target.value)}
+          />
+          <select value={subjectDeptFilter} onChange={e=>setSubjectDeptFilter(e.target.value === 'All Departments' ? '' : e.target.value)}>
+            <option>All Departments</option>
+            {['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}
+          </select>
+          <select value={subjectSemFilter} onChange={e=>setSubjectSemFilter(e.target.value === 'All Semesters' ? '' : e.target.value)}>
+            <option>All Semesters</option>
+            {[1,2,3,4,5,6,7,8].map(s=><option key={s} value={s}>Semester {s}</option>)}
+          </select>
+        </div>
+        <div className="ap-table-wrap">
+          <div className="ap-scroll-table">
+            <table className="ap-table">
+              <thead><tr><th>#</th><th>Subject Code</th><th>Subject Name</th><th>Dept</th><th>Semester</th><th>Credits</th><th>L-T-P</th><th>Faculty Assigned</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filteredSubjects.map((s, i) => (
+                  <tr key={s._id || s.code}>
+                    <td>{i+1}</td>
+                    <td style={{fontWeight:700,color:'#2563eb'}}>{s.code}</td>
+                    <td style={{fontWeight:600}}>{s.name}</td>
+                    <td><span className="badge badge-blue">{s.dept}</span></td>
+                    <td>{s.sem}</td>
+                    <td><span className="badge badge-purple">{s.credits}</span></td>
+                    <td><span className="badge badge-cyan">{s.ltp}</span></td>
+                    <td style={{fontSize:12}}>{s.faculty}</td>
+                    <td>
+                      <button className="ap-act-btn edit" onClick={()=>alert(`Edit Subject: ${s.name}`)}>Edit</button>
+                      <button className="ap-act-btn del" onClick={()=>alert('Delete confirmation')}>Del</button>
+                    </td>
+                  </tr>
+                ))}
+                {filteredSubjects.length === 0 && (
+                  <tr><td colSpan="9" style={{textAlign:'center',padding:20,color:'#64748b'}}>No subjects found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <div className="ap-adm-stats">
-        <div className="ap-adm-card"><h4>1,420</h4><p>Total Applications</p></div>
-        <div className="ap-adm-card green"><h4>942</h4><p>Approved</p></div>
-        <div className="ap-adm-card yellow"><h4>358</h4><p>Under Review</p></div>
-        <div className="ap-adm-card red"><h4>120</h4><p>Rejected</p></div>
-        <div className="ap-adm-card blue"><h4>78</h4><p>Doc Verification</p></div>
-      </div>
-      <div className="ap-controls">
-        <input placeholder=" Search by name, app ID, course..."/>
-        <select><option>All Status</option><option>Pending</option><option>Approved</option><option>Rejected</option><option>Document Verification</option></select>
-        <select><option>All Courses</option><option>B.E. CSE</option><option>B.E. ECE</option><option>B.E. Mech</option><option>B.E. Civil</option><option>B.E. IT</option></select>
-      </div>
-      <div className="ap-table-wrap">
-        <div className="ap-scroll-table">
-          <table className="ap-table">
-            <thead><tr><th>#</th><th>App ID</th><th>Name</th><th>Course</th><th>Score</th><th>12th %</th><th>Category</th><th>Applied</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              {[
-                ['APP-2025-001','Arun Kumar R','B.E. CSE','185/200','95.2%','General','Jan 15','Approved'],
-                ['APP-2025-002','Meena Rajeshwari','B.E. ECE','178/200','92.8%','OBC','Jan 15','Approved'],
-                ['APP-2025-003','Vijay Sethupathi','B.E. Mech','172/200','89.5%','General','Jan 14','Approved'],
-                ['APP-2025-004','Lakshmi Priya K','B.E. Civil','168/200','91.2%','SC','Jan 14','Pending'],
-                ['APP-2025-005','Rahul Venkatesh','B.E. IT','182/200','94.6%','General','Jan 13','Approved'],
-                ['APP-2025-006','Divya Sharma','B.E. Biotech','175/200','90.8%','OBC','Jan 13','Pending'],
-                ['APP-2025-007','Suresh Muthu','B.E. CSE','192/200','96.5%','General','Jan 12','Approved'],
-                ['APP-2025-008','Kavitha Devi','B.E. ECE','165/200','88.4%','ST','Jan 12','Document Verification'],
-                ['APP-2025-009','Prakash Kumar','B.E. Mech','158/200','85.2%','OBC','Jan 11','Pending'],
-                ['APP-2025-010','Anjali Menon','B.E. CSE','188/200','93.8%','General','Jan 11','Approved'],
-                ['APP-2025-011','Karthik Raj S','B.E. IT','142/200','82.6%','SC','Jan 10','Rejected'],
-              ].map(([id,name,course,score,hsc,cat,date,status],i) => (
-                <tr key={id}>
-                  <td>{i+1}</td>
-                  <td style={{fontWeight:700,fontSize:12,color:'#2563eb'}}>{id}</td>
-                  <td style={{fontWeight:600}}>{name}</td>
-                  <td>{course}</td><td>{score}</td><td>{hsc}</td>
-                  <td><span className="badge badge-cyan">{cat}</span></td><td>{date}</td>
-                  <td><span className={status==='Approved'?'badge-ok':status==='Pending'||status==='Document Verification'?'badge-warn':'badge-low'}>{status}</span></td>
-                  <td>
-                    {status==='Pending' && <><button className="ap-act-btn approve" onClick={()=>alert(`Approved: ${name}`)}> Approve</button><button className="ap-act-btn reject" onClick={()=>alert(`Rejected: ${name}`)}> Reject</button></>}
-                    {status!=='Pending' && <button className="ap-act-btn view" onClick={()=>alert(`Application: ${id}\nName: ${name}\nStatus: ${status}`)}> View</button>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    );
+  };
+
+  const renderAdmissions = () => {
+    const admissionEnquiries = enquiries.filter(e => e.type === 'admission' || !e.type);
+
+    const filteredAdmissions = admissionEnquiries.filter(e => {
+      const matchSearch = !admissionsFilter.search || 
+        e.name?.toLowerCase().includes(admissionsFilter.search.toLowerCase()) ||
+        e.appId?.toLowerCase().includes(admissionsFilter.search.toLowerCase()) ||
+        e.department?.toLowerCase().includes(admissionsFilter.search.toLowerCase());
+
+      const matchStatus = !admissionsFilter.status || e.status === admissionsFilter.status;
+      const matchDept = !admissionsFilter.dept || e.department?.includes(admissionsFilter.dept);
+
+      return matchSearch && matchStatus && matchDept;
+    });
+
+    return (
+      <div className="ap-page">
+        <div className="ap-page-header">
+          <div><h2>Admissions Management</h2><p>Academic Year 2025-26 application tracking</p></div>
+          <div className="ap-page-actions">
+            <button className="ap-btn sm" onClick={()=>alert('Download Merit List PDF')}> Merit List</button>
+            <button className="ap-btn sm gold" onClick={()=>openModal('admission')}>+ New Application</button>
+          </div>
+        </div>
+        <div className="ap-adm-stats">
+          <div className="ap-adm-card"><h4>{admissionEnquiries.length}</h4><p>Total Applications</p></div>
+          <div className="ap-adm-card green"><h4>{admissionEnquiries.filter(e => e.status === 'Approved').length}</h4><p>Approved</p></div>
+          <div className="ap-adm-card yellow"><h4>{admissionEnquiries.filter(e => e.status === 'Pending' || e.status === 'Under Review').length}</h4><p>Under Review</p></div>
+          <div className="ap-adm-card red"><h4>{admissionEnquiries.filter(e => e.status === 'Rejected').length}</h4><p>Rejected</p></div>
+          <div className="ap-adm-card blue"><h4>{admissionEnquiries.filter(e => e.status === 'Document Verification').length}</h4><p>Doc Verification</p></div>
+        </div>
+        <div className="ap-controls">
+          <input 
+            placeholder=" Search by name, app ID, course..."
+            value={admissionsFilter.search}
+            onChange={e => setAdmissionsFilter({ ...admissionsFilter, search: e.target.value })}
+          />
+          <select 
+            value={admissionsFilter.status}
+            onChange={e => setAdmissionsFilter({ ...admissionsFilter, status: e.target.value === 'All Status' ? '' : e.target.value })}
+          >
+            <option>All Status</option>
+            <option>Pending</option>
+            <option>Under Review</option>
+            <option>Document Verification</option>
+            <option>Approved</option>
+            <option>Rejected</option>
+          </select>
+          <select 
+            value={admissionsFilter.dept}
+            onChange={e => setAdmissionsFilter({ ...admissionsFilter, dept: e.target.value === 'All Courses' ? '' : e.target.value })}
+          >
+            <option>All Courses</option>
+            <option>CSE</option>
+            <option>ECE</option>
+            <option>Mech</option>
+            <option>Civil</option>
+            <option>IT</option>
+            <option>Biotech</option>
+          </select>
+        </div>
+        <div className="ap-table-wrap">
+          <div className="ap-scroll-table">
+            <table className="ap-table">
+              <thead><tr><th>#</th><th>App ID</th><th>Name</th><th>Course</th><th>10th %</th><th>12th %</th><th>Category</th><th>Applied</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filteredAdmissions.map((e, i) => (
+                  <tr key={e._id || e.id}>
+                    <td>{i+1}</td>
+                    <td style={{fontWeight:700,fontSize:12,color:'#2563eb'}}>{e.appId || (e._id ? e._id.substring(18) : 'PENDING')}</td>
+                    <td style={{fontWeight:600}}>{e.name || `${e.firstName || ''} ${e.lastName || ''}`}</td>
+                    <td>{e.department || 'B.E. CSE'}</td>
+                    <td>{e.tenthPercent ? `${e.tenthPercent}%` : '—'}</td>
+                    <td>{e.twelfthPercent ? `${e.twelfthPercent}%` : '—'}</td>
+                    <td><span className="badge badge-cyan">{e.community || 'General'}</span></td>
+                    <td>{e.date}</td>
+                    <td><span className={e.status==='Approved'?'badge-ok':(e.status==='Pending'||e.status==='Under Review'||e.status==='Document Verification')?'badge-warn':'badge-low'}>{e.status}</span></td>
+                    <td>
+                      <button className="ap-act-btn view" onClick={() => { e.tempStatus = e.status; setAdmissionDetailModal({ open: true, data: e }); }}>Review / Decision</button>
+                    </td>
+                  </tr>
+                ))}
+                {filteredAdmissions.length === 0 && (
+                  <tr><td colSpan="10" style={{textAlign:'center',padding:20,color:'#64748b'}}>No applications found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderAttendance = () => (
     <div className="ap-page">
@@ -986,161 +1110,209 @@ function AdminPortalPage() {
     </div>
   );
 
-  const renderFees = () => (
-    <div className="ap-page">
-      <div className="ap-page-header">
-        <div><h2>Fees Management</h2><p>Academic Year 2025-26 fee collection overview</p></div>
-        <div className="ap-page-actions">
-          <button className="ap-btn sm outline" onClick={()=>openModal('feeStructure')}> Fee Structure</button>
-          <button className="ap-btn sm gold" onClick={()=>openModal('addPayment')}>+ Record Payment</button>
-        </div>
-      </div>
-      <div className="ap-adm-stats">
-        <div className="ap-adm-card green"><h4>47.6 Cr</h4><p>Total Collected</p></div>
-        <div className="ap-adm-card yellow"><h4>4.9 Cr</h4><p>Pending</p></div>
-        <div className="ap-adm-card"><h4>52.5 Cr</h4><p>Total Expected</p></div>
-        <div className="ap-adm-card red"><h4>342</h4><p>Defaulters (>30d)</p></div>
-        <div className="ap-adm-card blue"><h4>15</h4><p>Scholarships</p></div>
-      </div>
-      <div className="ap-controls">
-        <input placeholder=" Search by name or roll no..."/>
-        <select><option>All Departments</option>{['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}</select>
-        <select><option>All Status</option><option>Fully Paid</option><option>Partial</option><option>Overdue</option></select>
-      </div>
-      <div className="ap-table-wrap">
-        <div className="ap-scroll-table">
-          <table className="ap-table">
-            <thead><tr><th>#</th><th>Roll No.</th><th>Name</th><th>Dept</th><th>Sem</th><th>Total Fee</th><th>Paid</th><th>Pending</th><th>Last Payment</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              {[
-                ['21CS001','Arjun Ramesh','CSE',5,'87,500','87,500','0','Jan 10','Paid'],
-                ['21CS002','Priya Lakshmi','CSE',5,'87,500','87,500','0','Jan 08','Paid'],
-                ['21EC001','Rahul Sharma','ECE',5,'87,500','50,000','37,500','Dec 28','Partial'],
-                ['21ME001','Sneha Patel','Mech',5,'87,500','30,000','57,500','Dec 15','Overdue'],
-                ['21CV001','Karthik Raj','Civil',3,'87,500','87,500','0','Jan 12','Paid'],
-                ['21IT001','Divya Menon','IT',3,'87,500','45,000','42,500','Jan 05','Partial'],
-                ['21CS045','Suresh Kumar','CSE',7,'87,500','87,500','0','Jan 09','Paid'],
-                ['21IT019','Vijay Kumar','IT',5,'87,500','0','87,500','Not Paid','Overdue'],
-              ].map(([roll,name,dept,sem,total,paid,due,last,status],i) => (
-                <tr key={roll}>
-                  <td>{i+1}</td>
-                  <td style={{fontWeight:700,color:'#2563eb'}}>{roll}</td>
-                  <td style={{fontWeight:600}}>{name}</td>
-                  <td><span className="badge badge-blue">{dept}</span></td>
-                  <td>{sem}</td><td>{total}</td>
-                  <td style={{color:'#10b981',fontWeight:700}}>{paid}</td>
-                  <td style={{color:due==='0'?'#64748b':'#ef4444',fontWeight:700}}>{due}</td>
-                  <td style={{fontSize:12}}>{last}</td>
-                  <td><span className={status==='Paid'?'badge-ok':status==='Partial'?'badge-warn':'badge-low'}>{status}</span></td>
-                  <td>
-                    <button className="ap-act-btn view" onClick={()=>alert(`Fee receipt for ${name}`)}> Receipt</button>
-                    {status!=='Paid' && <button className="ap-act-btn warn" onClick={()=>alert(`Send reminder to ${name}`)}> Remind</button>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+  const renderFees = () => {
+    const filteredFees = allFees.filter(f => {
+      const q = feeSearch.toLowerCase();
+      const matchSearch = !q || f.rollNo?.toLowerCase().includes(q) || f.name?.toLowerCase().includes(q);
+      const matchDept = !feeDeptFilter || f.dept === feeDeptFilter;
+      const matchStatus = !feeStatusFilter || 
+        (feeStatusFilter === 'Fully Paid' && f.due === 0) || 
+        (feeStatusFilter === 'Partial' && f.paid > 0 && f.due > 0) || 
+        (feeStatusFilter === 'Overdue' && f.paid === 0 && f.due > 0);
+      return matchSearch && matchDept && matchStatus;
+    });
 
-  const renderLibrary = () => (
-    <div className="ap-page">
-      <div className="ap-page-header">
-        <div><h2>Library Management</h2><p>Book inventory, issue/return tracking and fines</p></div>
-        <div className="ap-page-actions">
-          <button className="ap-btn sm outline" onClick={()=>openModal('returnBook')}> Return Book</button>
-          <button className="ap-btn sm gold" onClick={()=>openModal('issueBook')}> Issue Book</button>
-          <button className="ap-btn sm ghost" onClick={()=>openModal('addBook')}>+ Add Book</button>
-        </div>
-      </div>
-      <div className="ap-adm-stats">
-        <div className="ap-adm-card blue"><h4>18,450</h4><p>Total Books</p></div>
-        <div className="ap-adm-card yellow"><h4>2,340</h4><p>Books Issued</p></div>
-        <div className="ap-adm-card green"><h4>16,110</h4><p>Available</p></div>
-        <div className="ap-adm-card red"><h4>186</h4><p>Overdue</p></div>
-        <div className="ap-adm-card purple"><h4>8,400</h4><p>Fines Collected</p></div>
-      </div>
-      <div className="ap-dash-row">
-        <div className="ap-dash-box" style={{gridColumn:'1/-1'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-            <h4> Book Inventory</h4>
-            <div className="ap-controls" style={{margin:0}}>
-              <input placeholder=" Search books..."/>
-              <select><option>All Categories</option><option>Engineering</option><option>Science</option><option>Management</option></select>
-            </div>
+    const totalExpected = allFees.reduce((sum, f) => sum + (f.total || 0), 0);
+    const totalCollected = allFees.reduce((sum, f) => sum + (f.paid || 0), 0);
+    const totalPending = allFees.reduce((sum, f) => sum + (f.due || 0), 0);
+    const totalDefaulters = allFees.filter(f => f.due > 30000).length;
+
+    return (
+      <div className="ap-page">
+        <div className="ap-page-header">
+          <div><h2>Fees Management</h2><p>Academic Year 2025-26 fee collection overview</p></div>
+          <div className="ap-page-actions">
+            <button className="ap-btn sm outline" onClick={()=>openModal('feeStructure')}> Fee Structure</button>
+            <button className="ap-btn sm gold" onClick={()=>openModal('addPayment')}>+ Record Payment</button>
           </div>
+        </div>
+        <div className="ap-adm-stats">
+          <div className="ap-adm-card green"><h4>₹{(totalCollected/10000000).toFixed(2)} Cr</h4><p>Total Collected</p></div>
+          <div className="ap-adm-card yellow"><h4>₹{(totalPending/10000000).toFixed(2)} Cr</h4><p>Pending</p></div>
+          <div className="ap-adm-card"><h4>₹{(totalExpected/10000000).toFixed(2)} Cr</h4><p>Total Expected</p></div>
+          <div className="ap-adm-card red"><h4>{totalDefaulters}</h4><p>Defaulters (>₹30k)</p></div>
+          <div className="ap-adm-card blue"><h4>15</h4><p>Scholarships</p></div>
+        </div>
+        <div className="ap-controls">
+          <input 
+            placeholder=" Search by name or roll no..."
+            value={feeSearch}
+            onChange={e=>setFeeSearch(e.target.value)}
+          />
+          <select value={feeDeptFilter} onChange={e=>setFeeDeptFilter(e.target.value === 'All Departments' ? '' : e.target.value)}>
+            <option>All Departments</option>
+            {['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}
+          </select>
+          <select value={feeStatusFilter} onChange={e=>setFeeStatusFilter(e.target.value === 'All Status' ? '' : e.target.value)}>
+            <option>All Status</option>
+            <option>Fully Paid</option>
+            <option>Partial</option>
+            <option>Overdue</option>
+          </select>
+        </div>
+        <div className="ap-table-wrap">
           <div className="ap-scroll-table">
             <table className="ap-table">
-              <thead><tr><th>#</th><th>Book ID</th><th>Title</th><th>Author</th><th>Category</th><th>Dept</th><th>Copies</th><th>Available</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>#</th><th>Roll No.</th><th>Name</th><th>Dept</th><th>Sem</th><th>Total Fee</th><th>Paid</th><th>Pending</th><th>Last Payment</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
-                {[
-                  ['LIB-001','Introduction to Algorithms','Cormen et al','CS',['CSE'],12,8,'Available'],
-                  ['LIB-002','Operating System Concepts','Silberschatz','CS','CSE',10,10,'Available'],
-                  ['LIB-003','DBMS by Ramakrishnan','Ramakrishnan','CS','CSE',8,3,'Low Stock'],
-                  ['LIB-004','VLSI Design','Kamran Eshraghian','Electronics','ECE',6,6,'Available'],
-                  ['LIB-005','Fluid Mechanics','Cengel & Cimbala','Mechanical','Mech',8,5,'Available'],
-                  ['LIB-006','Structural Analysis','R.C. Hibbeler','Civil','Civil',7,7,'Available'],
-                  ['LIB-007','Web Technologies','Uttam Roy','IT','IT',10,2,'Low Stock'],
-                  ['LIB-008','Biotechnology','B.D. Singh','Biology','Biotech',5,0,'Out of Stock'],
-                ].map(([id,title,author,cat,dept,copies,avail,status],i) => (
-                  <tr key={id}>
-                    <td>{i+1}</td>
-                    <td style={{fontWeight:700,color:'#2563eb',fontSize:12}}>{id}</td>
-                    <td style={{fontWeight:600}}>{title}</td>
-                    <td style={{fontSize:12}}>{author}</td>
-                    <td><span className="badge badge-blue">{cat}</span></td>
-                    <td><span className="badge badge-cyan">{dept}</span></td>
-                    <td>{copies}</td>
-                    <td style={{fontWeight:700,color:avail===0?'#ef4444':avail<=3?'#f59e0b':'#10b981'}}>{avail}</td>
-                    <td><span className={status==='Available'?'badge-ok':status==='Low Stock'?'badge-warn':'badge-low'}>{status}</span></td>
-                    <td>
-                      <button className="ap-act-btn view" onClick={()=>alert(`Issue book: ${title}`)}> Issue</button>
-                      <button className="ap-act-btn edit" onClick={()=>alert(`Edit: ${title}`)}>Edit</button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredFees.map((f, i) => {
+                  const status = f.due === 0 ? 'Paid' : f.paid > 0 ? 'Partial' : 'Overdue';
+                  return (
+                    <tr key={f._id || f.rollNo}>
+                      <td>{i+1}</td>
+                      <td style={{fontWeight:700,color:'#2563eb'}}>{f.rollNo}</td>
+                      <td style={{fontWeight:600}}>{f.name}</td>
+                      <td><span className="badge badge-blue">{f.dept}</span></td>
+                      <td>{f.sem}</td>
+                      <td>₹{f.total?.toLocaleString()}</td>
+                      <td style={{color:'#10b981',fontWeight:700}}>₹{f.paid?.toLocaleString()}</td>
+                      <td style={{color:f.due===0?'#64748b':'#ef4444',fontWeight:700}}>₹{f.due?.toLocaleString()}</td>
+                      <td style={{fontSize:12}}>{f.history && f.history[0] ? f.history[0].date : 'N/A'}</td>
+                      <td><span className={status==='Paid'?'badge-ok':status==='Partial'?'badge-warn':'badge-low'}>{status}</span></td>
+                      <td>
+                        <button className="ap-act-btn view" onClick={()=>alert(`Fee receipt for ${f.name}`)}> Receipt</button>
+                        {status!=='Paid' && <button className="ap-act-btn warn" onClick={()=>alert(`Send reminder to ${f.name}`)}> Remind</button>}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filteredFees.length === 0 && (
+                  <tr><td colSpan="11" style={{textAlign:'center',padding:20,color:'#64748b'}}>No fee records found.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
-      <div className="ap-dash-row">
-        <div className="ap-dash-box">
-          <h4> Overdue Books</h4>
-          <table className="ap-table" style={{minWidth:'auto'}}>
-            <thead><tr><th>Roll No.</th><th>Book</th><th>Issued</th><th>Due Date</th><th>Fine</th><th>Action</th></tr></thead>
-            <tbody>
-              {[['21CS001','Intro to Algorithms','May 1','May 15','150'],['21EC005','VLSI Design','May 5','May 19','100'],['21ME003','Fluid Mech','Apr 28','May 12','250']].map(([roll,book,issued,due,fine]) => (
-                <tr key={roll+book}>
-                  <td style={{fontWeight:700,color:'#ef4444'}}>{roll}</td>
-                  <td style={{fontSize:12}}>{book}</td>
-                  <td style={{fontSize:12}}>{issued}</td>
-                  <td style={{fontSize:12,color:'#ef4444'}}>{due}</td>
-                  <td style={{fontWeight:700,color:'#ef4444'}}>{fine}</td>
-                  <td><button className="ap-act-btn warn" onClick={()=>alert(`Send notice to ${roll}`)}> Notify</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    );
+  };
+
+  const renderLibrary = () => {
+    const filteredBooks = books.filter(b => {
+      const q = bookSearch.toLowerCase();
+      const matchSearch = !q || b.bookId?.toLowerCase().includes(q) || b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q);
+      const matchCat = !bookCatFilter || b.category === bookCatFilter;
+      return matchSearch && matchCat;
+    });
+
+    const totalBooks = books.reduce((sum, b) => sum + (b.copies || 0), 0);
+    const issuedBooks = books.reduce((sum, b) => sum + ((b.copies - b.available) || 0), 0);
+    const availableBooks = books.reduce((sum, b) => sum + (b.available || 0), 0);
+    const lowStockBooks = books.filter(b => b.available > 0 && b.available <= 3).length;
+
+    return (
+      <div className="ap-page">
+        <div className="ap-page-header">
+          <div><h2>Library Management</h2><p>Book inventory, issue/return tracking and fines</p></div>
+          <div className="ap-page-actions">
+            <button className="ap-btn sm outline" onClick={()=>openModal('returnBook')}> Return Book</button>
+            <button className="ap-btn sm gold" onClick={()=>openModal('issueBook')}> Issue Book</button>
+            <button className="ap-btn sm ghost" onClick={()=>openModal('addBook')}>+ Add Book</button>
+          </div>
         </div>
-        <div className="ap-dash-box">
-          <h4> Department-wise Book Usage</h4>
-          {[['CSE',680,850,80],['ECE',540,650,83],['Mech',420,520,81],['Civil',380,450,84],['IT',320,400,80],['Biotech',240,280,86]].map(([dept,used,total,pct]) => (
-            <div className="ap-progress-row" key={dept}>
-              <span className="ap-progress-label">{dept}</span>
-              <div className="ap-progress-bar-wrap">
-                <div className="ap-progress-bar" style={{width:`${pct}%`,background:'#3b82f6'}}/>
+        <div className="ap-adm-stats">
+          <div className="ap-adm-card blue"><h4>{totalBooks.toLocaleString()}</h4><p>Total Books</p></div>
+          <div className="ap-adm-card yellow"><h4>{issuedBooks.toLocaleString()}</h4><p>Books Issued</p></div>
+          <div className="ap-adm-card green"><h4>{availableBooks.toLocaleString()}</h4><p>Available</p></div>
+          <div className="ap-adm-card red"><h4>{lowStockBooks}</h4><p>Low Stock Categories</p></div>
+          <div className="ap-adm-card purple"><h4>₹8,400</h4><p>Fines Collected</p></div>
+        </div>
+        <div className="ap-dash-row">
+          <div className="ap-dash-box" style={{gridColumn:'1/-1'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:12}}>
+              <h4> Book Inventory</h4>
+              <div className="ap-controls" style={{margin:0}}>
+                <input 
+                  placeholder=" Search books..."
+                  value={bookSearch}
+                  onChange={e=>setBookSearch(e.target.value)}
+                />
+                <select value={bookCatFilter} onChange={e=>setBookCatFilter(e.target.value === 'All Categories' ? '' : e.target.value)}>
+                  <option>All Categories</option>
+                  <option>CS</option>
+                  <option>Electronics</option>
+                  <option>Mechanical</option>
+                  <option>Civil</option>
+                  <option>IT</option>
+                  <option>Biology</option>
+                </select>
               </div>
-              <span className="ap-progress-count">{used}/{total}</span>
-              <span className="ap-progress-pct" style={{color:'#3b82f6'}}>{pct}%</span>
             </div>
-          ))}
+            <div className="ap-table-wrap">
+              <table className="ap-table">
+                <thead><tr><th>#</th><th>Book ID</th><th>Title</th><th>Author</th><th>Category</th><th>Dept</th><th>Copies</th><th>Available</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                  {filteredBooks.map((b, i) => (
+                    <tr key={b._id || b.bookId}>
+                      <td>{i+1}</td>
+                      <td style={{fontWeight:700,color:'#2563eb',fontSize:12}}>{b.bookId}</td>
+                      <td style={{fontWeight:600}}>{b.title}</td>
+                      <td style={{fontSize:12}}>{b.author}</td>
+                      <td><span className="badge badge-blue">{b.category}</span></td>
+                      <td><span className="badge badge-cyan">{b.dept}</span></td>
+                      <td>{b.copies}</td>
+                      <td style={{fontWeight:700,color:b.available===0?'#ef4444':b.available<=3?'#f59e0b':'#10b981'}}>{b.available}</td>
+                      <td><span className={b.available===0?'badge-low':b.available<=3?'badge-warn':'badge-ok'}>{b.status}</span></td>
+                      <td>
+                        <button className="ap-act-btn view" onClick={()=>alert(`Issue book: ${b.title}`)}> Issue</button>
+                        <button className="ap-act-btn edit" onClick={()=>alert(`Edit: ${b.title}`)}>Edit</button>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredBooks.length === 0 && (
+                    <tr><td colSpan="10" style={{textAlign:'center',padding:20,color:'#64748b'}}>No books found in inventory.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div className="ap-dash-row">
+          <div className="ap-dash-box">
+            <h4> Overdue Books</h4>
+            <table className="ap-table" style={{minWidth:'auto'}}>
+              <thead><tr><th>Roll No.</th><th>Book</th><th>Issued</th><th>Due Date</th><th>Fine</th><th>Action</th></tr></thead>
+              <tbody>
+                {[['21CS001','Intro to Algorithms','May 1','May 15','₹150'],['21EC005','VLSI Design','May 5','May 19','₹100'],['21ME003','Fluid Mech','Apr 28','May 12','₹250']].map(([roll,book,issued,due,fine]) => (
+                  <tr key={roll+book}>
+                    <td style={{fontWeight:700,color:'#ef4444'}}>{roll}</td>
+                    <td style={{fontSize:12}}>{book}</td>
+                    <td style={{fontSize:12}}>{issued}</td>
+                    <td style={{fontSize:12,color:'#ef4444'}}>{due}</td>
+                    <td style={{fontWeight:700,color:'#ef4444'}}>{fine}</td>
+                    <td><button className="ap-act-btn warn" onClick={()=>alert(`Send notice to ${roll}`)}> Notify</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="ap-dash-box">
+            <h4> Department-wise Book Usage</h4>
+            {[['CSE',680,850,80],['ECE',540,650,83],['Mech',420,520,81],['Civil',380,450,84],['IT',320,400,80],['Biotech',240,280,86]].map(([dept,used,total,pct]) => (
+              <div className="ap-progress-row" key={dept}>
+                <span className="ap-progress-label">{dept}</span>
+                <div className="ap-progress-bar-wrap">
+                  <div className="ap-progress-bar" style={{width:`${pct}%`,background:'#3b82f6'}}/>
+                </div>
+                <span className="ap-progress-count">{used}/{total}</span>
+                <span className="ap-progress-pct" style={{color:'#3b82f6'}}>{pct}%</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderHostel = () => (
     <div className="ap-page">
@@ -1159,7 +1331,7 @@ function AdminPortalPage() {
       </div>
       <div className="ap-dash-row">
         <div className="ap-dash-box">
-          <h4> Block-wise Room Status  Block A (Boys)</h4>
+          <h4> Block-wise Room Status — Block A (Boys)</h4>
           <div className="ap-room-grid">
             {Array.from({length:40},(_,i)=>i+101).map(room => {
               const status = room<=135 ? 'occupied' : room<=137 ? 'maintenance' : 'vacant';
@@ -1180,15 +1352,18 @@ function AdminPortalPage() {
           <table className="ap-table" style={{minWidth:'auto'}}>
             <thead><tr><th>Room</th><th>Student</th><th>Roll</th><th>Block</th><th>Allotted</th></tr></thead>
             <tbody>
-              {[['A-112','Arjun Ramesh','21CS001','Boys A','Jan 10'],['A-115','Rahul Sharma','21EC001','Boys A','Jan 10'],['B-201','Priya Lakshmi','21CS002','Girls B','Jan 11'],['B-210','Divya Menon','21IT001','Girls B','Jan 11']].map(([room,name,roll,block,date]) => (
-                <tr key={room}>
-                  <td style={{fontWeight:700,color:'#2563eb'}}>{room}</td>
-                  <td style={{fontWeight:600,fontSize:13}}>{name}</td>
-                  <td style={{fontSize:12}}>{roll}</td>
-                  <td><span className="badge badge-blue">{block}</span></td>
-                  <td style={{fontSize:12}}>{date}</td>
+              {hostelAllocations.map((a) => (
+                <tr key={a._id || a.room}>
+                  <td style={{fontWeight:700,color:'#2563eb'}}>{a.room}</td>
+                  <td style={{fontWeight:600,fontSize:13}}>{a.student}</td>
+                  <td style={{fontSize:12}}>{a.roll}</td>
+                  <td><span className="badge badge-blue">{a.block}</span></td>
+                  <td style={{fontSize:12}}>{a.date}</td>
                 </tr>
               ))}
+              {hostelAllocations.length === 0 && (
+                <tr><td colSpan="5" style={{textAlign:'center',padding:20,color:'#64748b'}}>No allocations found.</td></tr>
+              )}
             </tbody>
           </table>
           <div className="ap-divider"/>
@@ -1205,56 +1380,59 @@ function AdminPortalPage() {
     </div>
   );
 
-  const renderTransport = () => (
-    <div className="ap-page">
-      <div className="ap-page-header">
-        <div><h2>Transport Management</h2><p>Bus routes, drivers and student allocation</p></div>
-        <div className="ap-page-actions">
-          <button className="ap-btn sm gold" onClick={()=>openModal('addBus')}>+ Add Bus/Route</button>
+  const renderTransport = () => {
+    const totalBuses = transportRoutes.length;
+    const activeRoutes = transportRoutes.filter(r => r.status === 'Active').length;
+    const studentsUsing = transportRoutes.reduce((sum, r) => sum + (r.students || 0), 0);
+    const maintenanceBuses = transportRoutes.filter(r => r.status === 'Maintenance').length;
+
+    return (
+      <div className="ap-page">
+        <div className="ap-page-header">
+          <div><h2>Transport Management</h2><p>Bus routes, drivers and student allocation</p></div>
+          <div className="ap-page-actions">
+            <button className="ap-btn sm gold" onClick={()=>openModal('addBus')}>+ Add Bus/Route</button>
+          </div>
+        </div>
+        <div className="ap-adm-stats">
+          <div className="ap-adm-card blue"><h4>{totalBuses}</h4><p>Total Buses</p></div>
+          <div className="ap-adm-card green"><h4>{activeRoutes}</h4><p>Active Routes</p></div>
+          <div className="ap-adm-card yellow"><h4>{studentsUsing.toLocaleString()}</h4><p>Students Using</p></div>
+          <div className="ap-adm-card red"><h4>{maintenanceBuses}</h4><p>Under Maintenance</p></div>
+        </div>
+        <div className="ap-table-wrap">
+          <div className="ap-scroll-table">
+            <table className="ap-table">
+              <thead><tr><th>#</th><th>Bus No.</th><th>Route Name</th><th>Route Area</th><th>Stops</th><th>Driver</th><th>Driver Contact</th><th>Capacity</th><th>Students</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {transportRoutes.map((r, i) => (
+                  <tr key={r._id || r.busNo}>
+                    <td>{i+1}</td>
+                    <td style={{fontWeight:700,color:'#2563eb',fontSize:12}}>{r.busNo}</td>
+                    <td style={{fontWeight:600}}>{r.route}</td>
+                    <td style={{fontSize:12}}>{r.area}</td>
+                    <td>{r.stops}</td>
+                    <td>{r.driver}</td>
+                    <td style={{fontSize:12}}>{r.contact}</td>
+                    <td>{r.capacity}</td>
+                    <td style={{fontWeight:700,color:r.students/r.capacity>0.9?'#ef4444':'#10b981'}}>{r.students}/{r.capacity}</td>
+                    <td><span className={r.status==='Active'?'badge-ok':'badge-warn'}>{r.status}</span></td>
+                    <td>
+                      <button className="ap-act-btn view" onClick={()=>alert(`Route: ${r.route}\nDriver: ${r.driver}\nContact: ${r.contact}`)}>View</button>
+                      <button className="ap-act-btn edit" onClick={()=>alert(`Edit route: ${r.route}`)}>Edit</button>
+                    </td>
+                  </tr>
+                ))}
+                {transportRoutes.length === 0 && (
+                  <tr><td colSpan="11" style={{textAlign:'center',padding:20,color:'#64748b'}}>No transport routes found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <div className="ap-adm-stats">
-        <div className="ap-adm-card blue"><h4>45</h4><p>Total Buses</p></div>
-        <div className="ap-adm-card green"><h4>42</h4><p>Active Routes</p></div>
-        <div className="ap-adm-card yellow"><h4>2,840</h4><p>Students Using</p></div>
-        <div className="ap-adm-card red"><h4>3</h4><p>Under Maintenance</p></div>
-      </div>
-      <div className="ap-table-wrap">
-        <div className="ap-scroll-table">
-          <table className="ap-table">
-            <thead><tr><th>#</th><th>Bus No.</th><th>Route Name</th><th>Route Area</th><th>Stops</th><th>Driver</th><th>Driver Contact</th><th>Capacity</th><th>Students</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              {[
-                ['TN-01-AB-1234','Route 1  Kanchipuram','Kanchipuram - Pennalur',8,'Murugan K','9876500001',60,58,'Active'],
-                ['TN-01-AB-5678','Route 2  Chennai Central','Chennai Central - College',12,'Rajesh M','9876500002',65,62,'Active'],
-                ['TN-01-AB-9012','Route 3  Tambaram','Tambaram - College',10,'Suresh V','9876500003',55,50,'Active'],
-                ['TN-01-AB-3456','Route 4  Chrompet','Chrompet - College',9,'Kumar P','9876500004',60,48,'Active'],
-                ['TN-01-AB-7890','Route 5  Perambur','Perambur - College',11,'Ravi S','9876500005',65,61,'Active'],
-                ['TN-01-AB-1122','Route 6  Guindy','Guindy - College',7,'Ganesh R','9876500006',55,0,'Maintenance'],
-              ].map(([busNo,route,area,stops,driver,contact,cap,students,status],i) => (
-                <tr key={busNo}>
-                  <td>{i+1}</td>
-                  <td style={{fontWeight:700,color:'#2563eb',fontSize:12}}>{busNo}</td>
-                  <td style={{fontWeight:600}}>{route}</td>
-                  <td style={{fontSize:12}}>{area}</td>
-                  <td>{stops}</td>
-                  <td>{driver}</td>
-                  <td style={{fontSize:12}}>{contact}</td>
-                  <td>{cap}</td>
-                  <td style={{fontWeight:700,color:students/cap>0.9?'#ef4444':'#10b981'}}>{students}/{cap}</td>
-                  <td><span className={status==='Active'?'badge-ok':'badge-warn'}>{status}</span></td>
-                  <td>
-                    <button className="ap-act-btn view" onClick={()=>alert(`Route: ${route}\nDriver: ${driver}\nContact: ${contact}`)}>View</button>
-                    <button className="ap-act-btn edit" onClick={()=>alert(`Edit route: ${route}`)}>Edit</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderPlacements = () => (
     <div className="ap-page">
@@ -1473,107 +1651,157 @@ function AdminPortalPage() {
       </div>
     </div>
   );
+  const renderCertificates = () => {
+    const filteredCertificates = certificates.filter(c => {
+      const q = certSearch.toLowerCase();
+      const matchSearch = !q || c.roll?.toLowerCase().includes(q) || c.student?.toLowerCase().includes(q);
+      const matchType = !certTypeFilter || c.type === certTypeFilter;
+      const matchStatus = !certStatusFilter || c.status === certStatusFilter;
+      return matchSearch && matchType && matchStatus;
+    });
 
-  const renderCertificates = () => (
-    <div className="ap-page">
-      <div className="ap-page-header">
-        <div><h2>Certificate Management</h2><p>Bonafide, Transfer and Course Completion certificates</p></div>
-        <div className="ap-page-actions">
-          <button className="ap-btn sm gold" onClick={()=>openModal('issueCert')}> Issue Certificate</button>
-        </div>
-      </div>
-      <div className="ap-adm-stats">
-        <div className="ap-adm-card yellow"><h4>18</h4><p>Pending Requests</p></div>
-        <div className="ap-adm-card green"><h4>142</h4><p>Approved 2025</p></div>
-        <div className="ap-adm-card blue"><h4>80</h4><p>Bonafide</p></div>
-        <div className="ap-adm-card purple"><h4>28</h4><p>Transfer Cert</p></div>
-        <div className="ap-adm-card cyan"><h4>34</h4><p>Course Completion</p></div>
-      </div>
-      <div className="ap-controls">
-        <input placeholder=" Search by roll no or name..."/>
-        <select><option>All Types</option><option>Bonafide</option><option>Transfer Certificate</option><option>Course Completion</option></select>
-        <select><option>All Status</option><option>Pending</option><option>Approved</option><option>Rejected</option></select>
-      </div>
-      <div className="ap-table-wrap">
-        <div className="ap-scroll-table">
-          <table className="ap-table">
-            <thead><tr><th>#</th><th>Request ID</th><th>Student</th><th>Roll No.</th><th>Dept</th><th>Cert Type</th><th>Purpose</th><th>Applied Date</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              {[
-                ['CERT-001','Arjun Ramesh','21CS001','CSE','Bonafide','Bank Loan','Jun 1, 2025','Pending'],
-                ['CERT-002','Priya Lakshmi','21CS002','CSE','Bonafide','Passport Application','Jun 1, 2025','Approved'],
-                ['CERT-003','Rahul Sharma','21EC001','ECE','Transfer Certificate','Transferred to VIT','Jun 2, 2025','Pending'],
-                ['CERT-004','Sneha Patel','21ME001','Mech','Course Completion','Job Application','Jun 3, 2025','Approved'],
-                ['CERT-005','Karthik Raj','21CV001','Civil','Bonafide','Scholarship Application','Jun 3, 2025','Approved'],
-                ['CERT-006','Divya Menon','21IT001','IT','Course Completion','Higher Studies','Jun 4, 2025','Pending'],
-              ].map(([id,name,roll,dept,type,purpose,date,status],i) => (
-                <tr key={id}>
-                  <td>{i+1}</td>
-                  <td style={{fontWeight:700,color:'#2563eb',fontSize:12}}>{id}</td>
-                  <td style={{fontWeight:600}}>{name}</td>
-                  <td style={{fontSize:12}}>{roll}</td>
-                  <td><span className="badge badge-blue">{dept}</span></td>
-                  <td><span className="badge badge-purple">{type}</span></td>
-                  <td style={{fontSize:12}}>{purpose}</td>
-                  <td style={{fontSize:12}}>{date}</td>
-                  <td><span className={status==='Approved'?'badge-ok':'badge-warn'}>{status}</span></td>
-                  <td>
-                    {status==='Pending' && <><button className="ap-act-btn approve" onClick={()=>alert(`Approved: ${id}`)}> Approve</button><button className="ap-act-btn reject" onClick={()=>alert(`Rejected: ${id}`)}> Reject</button></>}
-                    {status==='Approved' && <button className="ap-act-btn view" onClick={()=>alert(`Download certificate: ${id}`)}> Download</button>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+    const pendingCount = certificates.filter(c => c.status === 'Pending').length;
+    const approvedCount = certificates.filter(c => c.status === 'Approved').length;
+    const bonafideCount = certificates.filter(c => c.type === 'Bonafide').length;
+    const tcCount = certificates.filter(c => c.type === 'Transfer Certificate').length;
+    const ccCount = certificates.filter(c => c.type === 'Course Completion').length;
 
-  const renderComplaints = () => (
-    <div className="ap-page">
-      <div className="ap-page-header">
-        <div><h2>Complaints & Support</h2><p>Student grievances, ticket tracking and feedback</p></div>
-        <div className="ap-page-actions">
-          <button className="ap-btn sm gold" onClick={()=>openModal('newComplaint')}>+ New Ticket</button>
-        </div>
-      </div>
-      <div className="ap-adm-stats">
-        <div className="ap-adm-card red"><h4>12</h4><p>Open Tickets</p></div>
-        <div className="ap-adm-card yellow"><h4>8</h4><p>In Progress</p></div>
-        <div className="ap-adm-card green"><h4>48</h4><p>Resolved</p></div>
-        <div className="ap-adm-card blue"><h4>68</h4><p>Total 2025</p></div>
-      </div>
-      {[
-        {id:'TKT-001',student:'Arjun Ramesh (21CS001)',title:'Lab computer not working in CS Lab 1',category:'Infrastructure',priority:'High',created:'Jun 1, 2025',status:'Open'},
-        {id:'TKT-002',student:'Priya Lakshmi (21CS002)',title:'Fee receipt not generated after payment',category:'Finance',priority:'High',created:'Jun 2, 2025',status:'In Progress'},
-        {id:'TKT-003',student:'Rahul Sharma (21EC001)',title:'Library book not available  VLSI Design',category:'Library',priority:'Medium',created:'Jun 3, 2025',status:'Open'},
-        {id:'TKT-004',student:'Divya Menon (21IT001)',title:'Hostel Wi-Fi not working in Room B-201',category:'Hostel',priority:'Medium',created:'Jun 3, 2025',status:'In Progress'},
-        {id:'TKT-005',student:'Karthik Raj (21CV001)',title:'Internal marks not updated for CN subject',category:'Academic',priority:'High',created:'Jun 4, 2025',status:'Resolved'},
-      ].map(t => (
-        <div key={t.id} className="ap-ticket">
-          <div style={{flex:1}}>
-            <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
-              <span className="ap-ticket-id">{t.id}</span>
-              <span className={t.priority==='High'?'badge-low':t.priority==='Medium'?'badge-warn':'badge-ok'}>{t.priority}</span>
-              <span className="badge badge-blue">{t.category}</span>
-            </div>
-            <h5>{t.title}</h5>
-            <p style={{marginTop:4}}>{t.student}</p>
-            <div className="ap-ticket-meta">
-              <span style={{fontSize:12,color:'#94a3b8'}}> {t.created}</span>
-              <span className={t.status==='Open'?'badge-low':t.status==='In Progress'?'badge-warn':'badge-ok'}>{t.status}</span>
-            </div>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:6,flexShrink:0}}>
-            {t.status!=='Resolved' && <button className="ap-act-btn approve" onClick={()=>alert(`Mark as resolved: ${t.id}`)}> Resolve</button>}
-            <button className="ap-act-btn view" onClick={()=>alert(`View ticket: ${t.id}`)}>View</button>
+    return (
+      <div className="ap-page">
+        <div className="ap-page-header">
+          <div><h2>Certificate Management</h2><p>Bonafide, Transfer and Course Completion certificates</p></div>
+          <div className="ap-page-actions">
+            <button className="ap-btn sm gold" onClick={()=>openModal('issueCert')}> Issue Certificate</button>
           </div>
         </div>
-      ))}
-    </div>
-  );
+        <div className="ap-adm-stats">
+          <div className="ap-adm-card yellow"><h4>{pendingCount}</h4><p>Pending Requests</p></div>
+          <div className="ap-adm-card green"><h4>{approvedCount}</h4><p>Approved 2025</p></div>
+          <div className="ap-adm-card blue"><h4>{bonafideCount}</h4><p>Bonafide</p></div>
+          <div className="ap-adm-card purple"><h4>{tcCount}</h4><p>Transfer Cert</p></div>
+          <div className="ap-adm-card cyan"><h4>{ccCount}</h4><p>Course Completion</p></div>
+        </div>
+        <div className="ap-controls">
+          <input 
+            placeholder=" Search by roll no or name..."
+            value={certSearch}
+            onChange={e=>setCertSearch(e.target.value)}
+          />
+          <select value={certTypeFilter} onChange={e=>setCertTypeFilter(e.target.value === 'All Types' ? '' : e.target.value)}>
+            <option>All Types</option>
+            <option>Bonafide</option>
+            <option>Transfer Certificate</option>
+            <option>Course Completion</option>
+          </select>
+          <select value={certStatusFilter} onChange={e=>setCertStatusFilter(e.target.value === 'All Status' ? '' : e.target.value)}>
+            <option>All Status</option>
+            <option>Pending</option>
+            <option>Approved</option>
+            <option>Rejected</option>
+          </select>
+        </div>
+        <div className="ap-table-wrap">
+          <div className="ap-scroll-table">
+            <table className="ap-table">
+              <thead><tr><th>#</th><th>Request ID</th><th>Student</th><th>Roll No.</th><th>Dept</th><th>Cert Type</th><th>Purpose</th><th>Applied Date</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filteredCertificates.map((c, i) => (
+                  <tr key={c._id || c.certId}>
+                    <td>{i+1}</td>
+                    <td style={{fontWeight:700,color:'#2563eb',fontSize:12}}>{c.certId}</td>
+                    <td style={{fontWeight:600}}>{c.student}</td>
+                    <td style={{fontSize:12}}>{c.roll}</td>
+                    <td><span className="badge badge-blue">{c.dept}</span></td>
+                    <td><span className="badge badge-purple">{c.type}</span></td>
+                    <td style={{fontSize:12}}>{c.purpose}</td>
+                    <td style={{fontSize:12}}>{c.date}</td>
+                    <td><span className={c.status==='Approved'?'badge-ok':c.status==='Pending'?'badge-warn':'badge-low'}>{c.status}</span></td>
+                    <td>
+                      {c.status==='Pending' && (
+                        <>
+                          <button className="ap-act-btn approve" onClick={async () => {
+                            const res = await approveCertificateRequest(c._id || c.id);
+                            if (res) {
+                              setCertificates(prev => prev.map(item => (item._id === c._id || item.id === c.id) ? { ...item, status: "Approved" } : item));
+                              alert('Certificate request approved!');
+                            }
+                          }}> Approve</button>
+                          <button className="ap-act-btn del" onClick={async () => {
+                            const res = await rejectCertificateRequest(c._id || c.id);
+                            if (res) {
+                              setCertificates(prev => prev.map(item => (item._id === c._id || item.id === c.id) ? { ...item, status: "Rejected" } : item));
+                              alert('Certificate request rejected!');
+                            }
+                          }}> Reject</button>
+                        </>
+                      )}
+                      {c.status==='Approved' && <button className="ap-act-btn view" onClick={()=>alert(`Download certificate: ${c.certId}`)}> Download</button>}
+                    </td>
+                  </tr>
+                ))}
+                {filteredCertificates.length === 0 && (
+                  <tr><td colSpan="10" style={{textAlign:'center',padding:20,color:'#64748b'}}>No certificate requests found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
+  const renderComplaints = () => {
+    const openCount = complaints.filter(c => c.status === 'Open').length;
+    const progressCount = complaints.filter(c => c.status === 'In Progress').length;
+    const resolvedCount = complaints.filter(c => c.status === 'Resolved').length;
+
+    return (
+      <div className="ap-page">
+        <div className="ap-page-header">
+          <div><h2>Complaints & Support</h2><p>Student grievances, ticket tracking and feedback</p></div>
+          <div className="ap-page-actions">
+            <button className="ap-btn sm gold" onClick={()=>openModal('newComplaint')}>+ New Ticket</button>
+          </div>
+        </div>
+        <div className="ap-adm-stats">
+          <div className="ap-adm-card red"><h4>{openCount}</h4><p>Open Tickets</p></div>
+          <div className="ap-adm-card yellow"><h4>{progressCount}</h4><p>In Progress</p></div>
+          <div className="ap-adm-card green"><h4>{resolvedCount}</h4><p>Resolved</p></div>
+          <div className="ap-adm-card blue"><h4>{complaints.length}</h4><p>Total Tickets</p></div>
+        </div>
+        {complaints.map(t => (
+          <div key={t._id || t.ticketId} className="ap-ticket">
+            <div style={{flex:1}}>
+              <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
+                <span className="ap-ticket-id">{t.ticketId}</span>
+                <span className={t.priority==='High'?'badge-low':t.priority==='Medium'?'badge-warn':'badge-ok'}>{t.priority}</span>
+                <span className="badge badge-blue">{t.category}</span>
+              </div>
+              <h5>{t.title}</h5>
+              <p style={{marginTop:4}}>{t.student}</p>
+              <div className="ap-ticket-meta">
+                <span style={{fontSize:12,color:'#94a3b8'}}> {t.date}</span>
+                <span className={t.status==='Open'?'badge-low':t.status==='In Progress'?'badge-warn':'badge-ok'}>{t.status}</span>
+              </div>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:6,flexShrink:0}}>
+              {t.status!=='Resolved' && <button className="ap-act-btn approve" onClick={async () => {
+                const res = await resolveComplaintTicket(t._id || t.id);
+                if (res) {
+                  setComplaints(prev => prev.map(item => (item._id === t._id || item.id === t.id) ? { ...item, status: "Resolved" } : item));
+                  alert('Complaint resolved successfully!');
+                }
+              }}> Resolve</button>}
+              <button className="ap-act-btn view" onClick={()=>alert(`View ticket: ${t.ticketId}`)}>View</button>
+            </div>
+          </div>
+        ))}
+        {complaints.length === 0 && (
+          <div className="ap-empty"><div className="ap-empty-icon"></div><p>No support tickets found.</p></div>
+        )}
+      </div>
+    );
+  };
   const renderReports = () => (
     <div className="ap-page">
       <div className="ap-page-header">
@@ -1924,6 +2152,123 @@ function AdminPortalPage() {
     );
   };
 
+  // DETAIL MODAL FOR ADMISSIONS
+  const renderAdmissionDetailModal = () => {
+    if (!admissionDetailModal.open || !admissionDetailModal.data) return null;
+    const d = admissionDetailModal.data;
+    
+    return (
+      <div className="ap-modal open" onClick={e => { if(e.target.className.includes('ap-modal open')) setAdmissionDetailModal({ open: false, data: null }); }}>
+        <div className="ap-modal-box wide">
+          <div className="ap-modal-head">
+            <h4>Application Details: {d.appId || (d._id ? d._id.substring(18).toUpperCase() : 'PENDING')}</h4>
+            <button className="ap-modal-close" onClick={() => setAdmissionDetailModal({ open: false, data: null })}></button>
+          </div>
+          <div className="ap-modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, padding: '16px', background: 'linear-gradient(135deg, #1e293b, #0f172a)', borderRadius: 12, color: '#fff' }}>
+              <div style={{ width: 50, height: 50, borderRadius: '50%', background: '#f59e0b', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800 }}>
+                {d.name?.charAt(0) || d.firstName?.charAt(0) || '?'}
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{d.name || `${d.firstName || ''} ${d.lastName || ''}`}</h3>
+                <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: 13 }}>Applied on: {d.date || 'Unknown'}</p>
+              </div>
+              <span className={d.status === 'Approved' ? 'badge-ok' : d.status === 'Rejected' ? 'badge-low' : 'badge-warn'} style={{ marginLeft: 'auto' }}>
+                {d.status || 'Pending'}
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+              <div className="ap-dash-box" style={{ margin: 0 }}>
+                <h4 style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>Personal Information</h4>
+                <div className="ap-info-row"><span className="label">Full Name</span><span className="value">{d.name || `${d.firstName || ''} ${d.lastName || ''}`}</span></div>
+                <div className="ap-info-row"><span className="label">Email</span><span className="value">{d.email}</span></div>
+                <div className="ap-info-row"><span className="label">Phone</span><span className="value">{d.phone || d.parentMobile || ''}</span></div>
+                <div className="ap-info-row"><span className="label">Gender</span><span className="value">{d.gender || ''}</span></div>
+                <div className="ap-info-row"><span className="label">DOB</span><span className="value">{d.dob || ''}</span></div>
+                <div className="ap-info-row"><span className="label">Community</span><span className="value">{d.community || ''}</span></div>
+                <div className="ap-info-row"><span className="label">Aadhar</span><span className="value">{d.aadharNumber || ''}</span></div>
+                <div className="ap-info-row"><span className="label">Address</span><span className="value">{d.address ? `${d.address}, ${d.city || ''}, ${d.state || ''} - ${d.pincode || ''}` : ''}</span></div>
+              </div>
+
+              <div className="ap-dash-box" style={{ margin: 0 }}>
+                <h4 style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>Academic Information</h4>
+                <div className="ap-info-row"><span className="label">12th Percentage</span><span className="value" style={{ fontWeight: 700, color: '#2563eb' }}>{d.twelfthPercent || ''}%</span></div>
+                <div className="ap-info-row"><span className="label">12th Physics</span><span className="value">{d.twelfthPhysics || ''}</span></div>
+                <div className="ap-info-row"><span className="label">12th Chemistry</span><span className="value">{d.twelfthChemistry || ''}</span></div>
+                <div className="ap-info-row"><span className="label">12th Maths</span><span className="value">{d.twelfthMaths || ''}</span></div>
+                <div className="ap-info-row"><span className="label">12th College</span><span className="value">{d.collegeName || ''}</span></div>
+                <div className="ap-info-row"><span className="label">10th Percentage</span><span className="value">{d.tenthPercent || ''}%</span></div>
+                <div className="ap-info-row"><span className="label">TNEA Reg No</span><span className="value">{d.tneaNo || ''}</span></div>
+              </div>
+            </div>
+
+            <div className="ap-dash-box" style={{ marginTop: 20 }}>
+              <h4 style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>Admission Details & Preferences</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                <div className="ap-info-row"><span className="label">Preferred Course</span><span className="value" style={{ fontWeight: 700 }}>{d.department || ''}</span></div>
+                <div className="ap-info-row"><span className="label">Admission Type</span><span className="value">{d.admissionType || ''}</span></div>
+                <div className="ap-info-row"><span className="label">Hostel Required</span><span className="value" style={{ textTransform: 'capitalize' }}>{d.hostelRequired || 'no'}</span></div>
+                <div className="ap-info-row"><span className="label">Transport Required</span><span className="value" style={{ textTransform: 'capitalize' }}>{d.transportRequired || 'no'}</span></div>
+              </div>
+            </div>
+
+            <div className="ap-dash-box" style={{ marginTop: 20, background: '#f8fafc' }}>
+              <h4 style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>Application Status Decision</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>Current Status:</span>
+                  <span className={d.status === 'Approved' ? 'badge-ok' : d.status === 'Rejected' ? 'badge-low' : 'badge-warn'}>{d.status || 'Pending'}</span>
+                </div>
+                {d.reviewedBy && (
+                  <div style={{ fontSize: 13, color: '#64748b' }}>
+                    Reviewed by <strong>{d.reviewedBy}</strong>. Note: <em>{d.reviewNotes || 'No notes'}</em>
+                  </div>
+                )}
+                <div className="ap-divider" style={{ margin: '8px 0' }}/>
+                <div className="ap-form-group">
+                  <label>Update Status</label>
+                  <select 
+                    style={inp} 
+                    defaultValue={d.status || 'Pending'}
+                    onChange={e => d.tempStatus = e.target.value}
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Under Review">Under Review</option>
+                    <option value="Document Verification">Document Verification</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+                <div className="ap-form-group">
+                  <label>Review Notes / Decision Remarks</label>
+                  <textarea 
+                    placeholder="Enter notes for this application..." 
+                    style={{ ...inp, minHeight: 80 }}
+                    defaultValue={d.reviewNotes || ''}
+                    onChange={e => setReviewNotes(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="ap-modal-footer">
+            <button className="ap-btn ghost" onClick={() => setAdmissionDetailModal({ open: false, data: null })}>Close</button>
+            <button 
+              className="ap-btn gold" 
+              onClick={() => {
+                const targetStatus = d.tempStatus || d.status || 'Pending';
+                handleAdmissionStatus(d._id || d.id, targetStatus, reviewNotes);
+              }}
+            >
+              Save Decision
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   //  VIEW MODAL 
   const renderViewModal = () => {
     if (!viewModal.open || !viewModal.data) return null;
@@ -1938,9 +2283,13 @@ function AdminPortalPage() {
           </div>
           <div className="ap-modal-body">
             <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:20,padding:'16px',background:'#f8fafc',borderRadius:12}}>
-              <div style={{width:60,height:60,borderRadius:'50%',background:'linear-gradient(135deg,#3b82f6,#7c3aed)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:22,fontWeight:700,flexShrink:0}}>
-                {d.name?.charAt(0)}
-              </div>
+              {d.profilePhoto ? (
+                <img src={d.profilePhoto} alt={d.name} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+              ) : (
+                <div style={{width:60,height:60,borderRadius:'50%',background:isStudent ? 'linear-gradient(135deg,#3b82f6,#7c3aed)' : 'linear-gradient(135deg,#10b981,#059669)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:22,fontWeight:700,flexShrink:0}}>
+                  {d.name?.charAt(0)}
+                </div>
+              )}
               <div>
                 <h3 style={{margin:0,fontSize:18,fontWeight:700}}>{d.name}</h3>
                 <p style={{margin:'4px 0 0',color:'#64748b',fontSize:13}}>{isStudent ? `Roll: ${d.roll} | ${d.dept}  Sem ${d.sem}` : `${d.empId} | ${d.dept} | ${d.designation}`}</p>
@@ -2008,10 +2357,16 @@ function AdminPortalPage() {
                 <span
                   key={key}
                   className={`ap-link${page === key ? ' active' : ''}`}
-                  onClick={() => setPage(key)}
+                  onClick={() => {
+                    setPage(key);
+                    if (key === 'admissions') setNewAdmissionBadge(false);
+                  }}
                 >
                   <span className="ap-link-icon">{icon}</span>
                   {label}
+                  {key === 'admissions' && newAdmissionBadge && (
+                    <span style={{ marginLeft: 8, width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+                  )}
                 </span>
               ))}
             </div>
@@ -2046,6 +2401,7 @@ function AdminPortalPage() {
         {(pageRenderers[page] || renderDashboard)()}
       </div>
 
+      {renderAdmissionDetailModal()}
       {renderModal()}
       {renderViewModal()}
     </div>
