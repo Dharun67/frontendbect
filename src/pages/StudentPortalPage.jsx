@@ -818,14 +818,14 @@ function StudentPortalPage() {
                 </div>
 
                 <div class="date-ref">
-                  <div>Ref No: BEC/CC/2026/\${Math.floor(1000 + Math.random() * 9000)}</div>
-                  <div>Date: \${todayStr}</div>
+                  <div>Ref No: BEC/CC/2026/${Math.floor(1000 + Math.random() * 9000)}</div>
+                  <div>Date: ${todayStr}</div>
                 </div>
 
                 <div class="cert-title">COURSE COMPLETION CERTIFICATE</div>
 
                 <div class="cert-body">
-                  This is to certify that Mr./Ms. <strong>\${student.name}</strong>, bearing Roll Number <strong>\${student.roll}</strong>, has successfully completed the coursework for the Bachelor of Engineering (B.E.) degree in <strong>\${student.dept}</strong> at this institution, covering all prescribed academic requirements of Anna University.
+                  This is to certify that Mr./Ms. <strong>${student.name}</strong>, bearing Roll Number <strong>${student.roll}</strong>, has successfully completed the coursework for the Bachelor of Engineering (B.E.) degree in <strong>${student.dept}</strong> at this institution, covering all prescribed academic requirements of Anna University.
                 </div>
                 
                 <div class="cert-body" style="text-indent: 0;">
@@ -848,7 +848,7 @@ function StudentPortalPage() {
               </script>
             </body>
           </html>
-        \`);
+        `);
         printWindow.document.close();
       } catch (err) {
         console.error(err);
