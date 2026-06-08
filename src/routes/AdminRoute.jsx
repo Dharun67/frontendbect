@@ -1,16 +1,16 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
+import { useApp } from '../context/AppContext';
 import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 
 const AdminRoute = ({ children }) => {
-    const { user, loading } = useAppContext();
+    const { sessionUser, sessionType, loading } = useApp();
 
     if (loading) {
         return <LoadingSkeleton />;
     }
 
-    if (!user || user.type !== 'admin') {
+    if (!sessionUser || sessionType !== 'admin') {
         return <Navigate to="/admin-login" replace />;
     }
 
