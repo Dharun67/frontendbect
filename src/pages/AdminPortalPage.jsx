@@ -2659,6 +2659,9 @@ function AdminPortalPage() {
           <div className="ap-topbar-title">{pageTitles[page]}</div>
           <div className="ap-topbar-right">
             <div className="ap-topbar-badge">AY 2025-26</div>
+            <button className="ap-btn danger sm" onClick={async () => { await logoutUser(); navigate('/portal'); }} style={{ marginLeft: '10px', marginRight: '10px' }}>
+              Sign Out
+            </button>
             <div className="ap-user">
               <div className="ap-avatar">AD</div>
               <div className="ap-user-info">

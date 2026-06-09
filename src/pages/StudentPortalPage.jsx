@@ -934,6 +934,10 @@ function StudentPortalPage() {
             )}
           </div>
 
+          <button className="ap-btn danger sm" onClick={async () => { await logoutUser(); navigate('/student-login'); }} style={{ marginLeft: '20px', marginRight: '10px', height: '32px', borderRadius: '6px', border: 'none', background: '#ef4444', color: 'white', padding: '0 12px', cursor: 'pointer', fontWeight: 600 }}>
+            Sign Out
+          </button>
+
           {/* Profile Menu */}
           <div className="profile-menu" onClick={() => setShowProfileMenu(!showProfileMenu)}>
             <div className="profile-pic" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

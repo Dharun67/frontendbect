@@ -537,6 +537,9 @@ export default function FacultyPortalPage() {
             <span className="fp-topbar-current">{navItems.find(n => n.key === page)?.label}</span>
           </div>
           <div className="fp-topbar-right">
+            <button className="ap-btn danger sm" onClick={async () => { await logoutUser(); navigate('/portal'); }} style={{ marginLeft: '10px', marginRight: '10px', height: '32px', borderRadius: '6px', border: 'none', background: '#ef4444', color: 'white', padding: '0 12px', cursor: 'pointer', fontWeight: 600 }}>
+              Sign Out
+            </button>
             <div className="fp-topbar-user">
               <div className="fp-topbar-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {facultyData.profilePhoto ? (
