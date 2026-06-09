@@ -17,13 +17,13 @@ function Navbar() {
         <span>Email : info@bec.edu.in</span>
       </div>
       <nav className="navbar">
-        <div className="nav-left">
+        <Link to="/" className="nav-left" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }}>
           <img src={clgLogo} alt="BEC Logo" className="nav-logo" />
           <div className="nav-title">
             <h1>Best Engineering College</h1>
             <p>Autonomous | Affiliated to Anna University</p>
           </div>
-        </div>
+        </Link>
         <div className="nav-links">
           <Link to="/" className={pathname === '/' ? 'active' : ''}>Home</Link>
           <Link to="/about" className={pathname === '/about' ? 'active' : ''}>About</Link>
