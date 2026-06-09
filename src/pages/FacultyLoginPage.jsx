@@ -4,6 +4,7 @@ import Navbar from '../components/layout/Navbar';
 import clgLogo from '../assets/images/CLGLOGO.webp';
 import { verifyLogin, setLoggedInUser } from '../utils/storage';
 import { useForm, useValidation } from '../hooks/useForm';
+import { useApp } from '../context/AppContext';
 import { FormInput, FormCheckbox, FormButton, FormMessage } from '../components/ui/FormComponents';
 import '../assets/css/professional.css';
 import '../assets/css/login.css';
@@ -14,6 +15,7 @@ function FacultyLoginPage() {
   const navigate = useNavigate();
   const validation = useValidation();
   const form = useForm({ id: '', password: '', remember: false });
+  const { setSessionUser, setSessionType } = useApp();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,6 +34,8 @@ function FacultyLoginPage() {
     
     if (result.success) {
       setLoggedInUser('faculty', result.user);
+      setSessionUser(result.user);
+      setSessionType('faculty');
       navigate('/faculty-portal');
     } else {
       setMessage({ type: 'error', text: 'Invalid credentials. Use demo: faculty / faculty123' });

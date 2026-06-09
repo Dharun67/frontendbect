@@ -3,14 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import clgLogo from '../assets/images/CLGLOGO.webp';
 import { useForm } from '../hooks/useForm';
+import { useApp } from '../context/AppContext';
 import { FormInput, FormButton, FormMessage } from '../components/ui/FormComponents';
-import { verifyLogin } from '../utils/storage';
+import { verifyLogin, setLoggedInUser } from '../utils/storage';
 import '../assets/css/professional.css';
 import '../assets/css/login.css';
 
 function LoginPage() {
   const [siMsg, setSiMsg] = useState({ type: '', text: '' });
   const navigate = useNavigate();
+  const { setSessionUser, setSessionType } = useApp();
 
   const signInForm = useForm({ userType: 'student', userId: '', password: '' });
 
@@ -35,6 +37,10 @@ function LoginPage() {
       setSiMsg({ type: 'error', text: result?.message || 'Incorrect credentials. Please try again.' });
       return;
     }
+
+    setLoggedInUser(result.type, result.user);
+    setSessionUser(result.user);
+    setSessionType(result.type);
 
     setSiMsg({ type: 'success', text: `Login successful! Welcome. Redirecting...` });
     setTimeout(() => {
