@@ -929,6 +929,7 @@ function StudentPortalPage() {
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
             )}
           </div>
