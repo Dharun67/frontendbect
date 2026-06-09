@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Navbar from '../components/layout/Navbar';
 import clgLogo from '../assets/images/CLGLOGO.webp';
 import { useForm } from '../hooks/useForm';
 import { useApp } from '../context/AppContext';
@@ -51,7 +50,6 @@ function LoginPage() {
 
   return (
     <>
-      <Navbar />
       <div className="login-wrapper">
         <div className="login-card">
           <div className="login-logo">
@@ -104,10 +102,6 @@ function LoginPage() {
           </form>
 
         </div>
-      </div>
-      <div className="login-footer">
-        <p>&copy; 2025 Best Engineering College. All Rights Reserved.</p>
-        <p><Link to="/privacy">Privacy Policy</Link> &nbsp;|&nbsp; <Link to="/terms">Terms of Use</Link></p>
       </div>
     </>
   );

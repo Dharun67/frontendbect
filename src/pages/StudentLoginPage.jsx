@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Navbar from '../components/layout/Navbar';
 import clgLogo from '../assets/images/CLGLOGO.webp';
 import { verifyLogin } from '../utils/storage';
 import { useForm, useValidation } from '../hooks/useForm';
@@ -43,7 +42,6 @@ function StudentLoginPage() {
 
   return (
     <>
-      <Navbar />
       <div className="login-wrapper">
         <div className="login-card portal-login-card">
           <div className="portal-login-badge student-badge">Student Portal</div>
@@ -89,10 +87,6 @@ function StudentLoginPage() {
           </form>
           <div className="demo-creds"><p>Demo: ID <strong>student</strong> | Password <strong>student123</strong></p></div>
         </div>
-      </div>
-      <div className="login-footer">
-        <p>&copy; 2025 Best Engineering College. All Rights Reserved.</p>
-        <p><Link to="/privacy">Privacy Policy</Link> &nbsp;|&nbsp; <Link to="/terms">Terms of Use</Link></p>
       </div>
     </>
   );
