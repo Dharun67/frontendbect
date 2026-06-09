@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import clgLogo from '../assets/images/CLGLOGO.webp';
-import { verifyLogin, setLoggedInUser } from '../utils/storage';
+import { verifyLogin } from '../utils/storage';
 import { useForm, useValidation } from '../hooks/useForm';
 import { useApp } from '../context/AppContext';
 import { FormInput, FormCheckbox, FormButton, FormMessage } from '../components/ui/FormComponents';
@@ -33,7 +33,6 @@ function FacultyLoginPage() {
     const result = await verifyLogin('faculty', form.values.id.trim(), form.values.password.trim());
     
     if (result.success) {
-      setLoggedInUser('faculty', result.user);
       setSessionUser(result.user);
       setSessionType('faculty');
       navigate('/faculty-portal');

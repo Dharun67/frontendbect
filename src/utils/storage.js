@@ -72,29 +72,8 @@ export const logoutUser = async () => {
   }
 };
 
-/**
- * Store user session info in sessionStorage for quick access
- * The actual session is managed server-side via cookies
- */
-export const setLoggedInUser = (type, user) => {
-  if (user) {
-    sessionStorage.setItem('userType', type);
-    sessionStorage.setItem('userData', JSON.stringify(user));
-  }
-};
-
-export const getLoggedInUser = () => {
-  const type = sessionStorage.getItem('userType');
-  const userData = sessionStorage.getItem('userData');
-  if (type && userData) {
-    return { type, user: JSON.parse(userData) };
-  }
-  return null;
-};
-
 export const logout = async () => {
   await logoutUser();
-  sessionStorage.clear();
 };
 
 /**
