@@ -15,7 +15,8 @@ import {
   getAdminSubjects,
   getAdminBooks, getAdminHostelAllocations, getAdminTransportRoutes,
   getAdminCertificateRequests, approveCertificateRequest, rejectCertificateRequest,
-  getAdminComplaints, resolveComplaintTicket, getAdminAllFees
+  getAdminComplaints, resolveComplaintTicket, getAdminAllFees,
+  triggerBackup, exportReports, saveWebsiteSettings
 } from '../utils/storage';
 import * as XLSX from 'xlsx';
 import '../assets/css/admin-portal.css';
@@ -1912,7 +1913,14 @@ function AdminPortalPage() {
       <div className="ap-page-header">
         <div><h2>Reports & Analytics</h2><p>Generate comprehensive reports for all modules</p></div>
         <div className="ap-page-actions">
-          <button className="ap-btn sm outline" onClick={()=>alert('Export all reports as ZIP')}> Export All</button>
+          <button className="ap-btn sm outline" onClick={async ()=>{
+            const res = await exportReports('zip');
+            if (res && res.success) {
+              alert(res.message || 'Exported successfully!');
+            } else {
+              alert('Export failed!');
+            }
+          }}> Export All</button>
         </div>
       </div>
       <div className="ap-report-grid">
@@ -2058,7 +2066,10 @@ function AdminPortalPage() {
           {[['College Name','text','Best Engineering College'],['Affiliation','text','Anna University, Chennai'],['University Code','text','1234'],['NAAC Grade','text','A Grade (3.24/4.0)'],['Established','text','2016'],['Email','email','info@bec.edu.in'],['Phone','tel','+91 44 2716 3000'],['Website','text','www.bec.edu.in']].map(([label,type,val]) => (
             <div className="ap-form-group" key={label}><label>{label}</label><input type={type} defaultValue={val} style={inp}/></div>
           ))}
-          <button className="ap-btn" onClick={()=>alert('College information saved!')}>Save Changes</button>
+          <button className="ap-btn" onClick={async ()=>{
+            const res = await saveWebsiteSettings({});
+            if (res && res.success) { alert('College information saved!'); } else { alert('Failed to save settings!'); }
+          }}>Save Changes</button>
         </div>
         <div className="ap-settings-box">
           <h4> Academic Settings</h4>
@@ -2120,9 +2131,23 @@ function AdminPortalPage() {
           <div className="ap-info-row"><span className="label">Database Size</span><span className="value">4.8 GB</span></div>
           <div className="ap-info-row"><span className="label">Next Auto-Backup</span><span className="value">Jun 6, 2025  2:00 AM</span></div>
           <div style={{display:'flex',flexDirection:'column',gap:10,marginTop:20}}>
-            <button className="ap-btn success" onClick={()=>alert('Starting database backup...')}> Create Backup Now</button>
-            <button className="ap-btn warning" onClick={()=>alert('Restore from backup...')}> Restore from Backup</button>
-            <button className="ap-btn ghost" onClick={()=>alert('Export all data as CSV/Excel')}> Export All Data</button>
+            <button className="ap-btn success" onClick={async ()=>{
+              const res = await triggerBackup();
+              if (res && res.success) {
+                alert(res.message || 'Backup started successfully!');
+              } else {
+                alert('Backup failed!');
+              }
+            }}> Create Backup Now</button>
+            <button className="ap-btn warning" onClick={()=>alert('Restore from backup not implemented')}> Restore from Backup</button>
+            <button className="ap-btn ghost" onClick={async ()=>{
+              const res = await exportReports('csv');
+              if (res && res.success) {
+                alert(res.message || 'Exported all data successfully!');
+              } else {
+                alert('Export failed!');
+              }
+            }}> Export All Data</button>
           </div>
         </div>
       </div>

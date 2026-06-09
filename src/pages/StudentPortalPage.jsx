@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clgLogo from '../assets/images/CLGLOGO.webp';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { getSessionUser, logoutUser, getAttendance, getFees, getTimetable, getAssignments, getNotifications, getResults, submitAssignment, payFeesOnline, submitLeaveApplication, getLeaveApplications, getStudentHallTicket, uploadStudentPhoto, getNotices, getAdminSubjects, getAdminBooks, getPlacements, getAdminTransportRoutes, getAdminHostelAllocations, getStudentComplaints, createStudentComplaint, getStudentCertificates, createCertificateRequest } from '../utils/storage';
+import { getSessionUser, logoutUser, getAttendance, getFees, getTimetable, getAssignments, getNotifications, getResults, submitAssignment, payFeesOnline, submitLeaveApplication, getLeaveApplications, getStudentHallTicket, uploadStudentPhoto, getNotices, getAdminSubjects, getAdminBooks, getPlacements, getAdminTransportRoutes, getAdminHostelAllocations, getStudentComplaints, createStudentComplaint, getStudentCertificates, createCertificateRequest, updateStudentProfile, markNotificationsRead, getMarks } from '../utils/storage';
 import '../assets/css/student-portal.css';
 
 function StudentPortalPage() {
@@ -900,19 +900,28 @@ function StudentPortalPage() {
           </div>
           
           {/* Notifications */}
-          <div className="notification-icon" onClick={() => setShowNotifications(!showNotifications)}>
+          <div className="notification-icon" onClick={async () => {
+            const willShow = !showNotifications;
+            setShowNotifications(willShow);
+            if (willShow && notificationsData.some(n => n.isNew)) {
+              await markNotificationsRead(studentRoll);
+              setNotificationsData(notificationsData.map(n => ({ ...n, isNew: false })));
+            }
+          }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
-            <span className="notification-badge">5</span>
+            <span className="notification-badge">{notificationsData.filter(n => n.isNew).length > 0 ? notificationsData.filter(n => n.isNew).length : ''}</span>
             {showNotifications && (
               <div className="notification-dropdown">
                 <div className="notification-header">
-                  <h4>Alerts &amp; Notices</h4>
-                  <button className="close-btn" onClick={(e) => { e.stopPropagation(); setShowNotifications(false); }}>×</button>
+                  <h4>Notifications</h4>
+                  <button className="close-btn" onClick={(e) => { e.stopPropagation(); setShowNotifications(false); }}>x</button>
                 </div>
-                {notificationsData.slice(0, 4).map((notif, idx) => (
+                <div className="notification-list">
+                  {notificationsData.length === 0 && <p style={{padding: '10px', fontSize: '14px', color: '#666'}}>No new notifications</p>}
+                  {notificationsData.slice(0, 4).map((notif, idx) => (
                   <div key={idx} className={`notification-item ${notif.isNew ? 'new' : ''}`}>
                     <div className="notif-content">
                       <p>{notif.title}</p>

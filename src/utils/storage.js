@@ -935,3 +935,25 @@ export const updateStudentProfile = async (rollNo, profileData) => {
   }
 };
 
+export const triggerBackup = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/backup`, {
+      method: "POST"
+    });
+    return await res.json();
+  } catch (error) {
+    return { success: false, message: "Backup failed" };
+  }
+};
+
+export const exportReports = async (format) => {
+  try {
+    // We assume backend returns a file blob for download, but currently it returns a JSON response:
+    // res.json({ success: true, message: `Reports exported as ${format}`, ... })
+    const res = await authenticatedFetch(`${API_BASE}/admin/reports/export?format=${format}`);
+    return await res.json();
+  } catch (error) {
+    return { success: false, message: "Export failed" };
+  }
+};
+
