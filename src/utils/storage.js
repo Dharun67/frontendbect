@@ -4,7 +4,7 @@
 // on every request via `credentials: 'include'`.
 
 const isProduction = process.env.NODE_ENV === "production";
-const backendUrl = process.env.REACT_APP_API_URL || (isProduction ? "https://backendbect.onrender.com" : "http://localhost:5000");
+const backendUrl = "https://backendbect.onrender.com";
 
 const API_BASE = `${backendUrl}/api/portal`;
 
