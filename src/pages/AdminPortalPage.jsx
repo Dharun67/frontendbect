@@ -16,7 +16,8 @@ import {
   getAdminBooks, getAdminHostelAllocations, getAdminTransportRoutes,
   getAdminCertificateRequests, approveCertificateRequest, rejectCertificateRequest,
   getAdminComplaints, resolveComplaintTicket, getAdminAllFees,
-  triggerBackup, exportReports, saveWebsiteSettings
+  triggerBackup, exportReports, saveWebsiteSettings,
+  getAdminMarks, uploadAdminMarks, getAdminResults, publishAdminResults
 } from '../utils/storage';
 import * as XLSX from 'xlsx';
 import '../assets/css/admin-portal.css';
@@ -79,6 +80,8 @@ const pageTitles = {
 //  COMPONENT 
 function AdminPortalPage() {
   const [page, setPage] = useState('dashboard');
+  const [chartsMounted, setChartsMounted] = useState(false);
+  useEffect(() => { setChartsMounted(true); }, []);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [stuSearch, setStuSearch] = useState('');
   const [facultySearch, setFacultySearch] = useState('');
@@ -129,6 +132,8 @@ function AdminPortalPage() {
   const [certificates, setCertificates] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [allFees, setAllFees] = useState([]);
+  const [marksData, setMarksData] = useState([]);
+  const [resultsData, setResultsData] = useState([]);
 
   const [newStudent, setNewStudent] = useState({ 
     roll: '', name: '', email: '', password: '', phone: '', dob: '', gender: 'Male',
@@ -162,45 +167,36 @@ function AdminPortalPage() {
       }
 
       try {
-        const [
-          students, faculty, noticeList, eventList, logs,
-          depts, crs, subs, bks, hostel, transport, certs, comps, fees
-        ] = await Promise.all([
+        const [students, faculty, fees] = await Promise.all([
           getAdminStudents(),
           getAdminFaculty(),
-          getNotices(),
-          getEvents(),
-          getAdminActivityLogs(),
-          getAdminDepartments(),
-          getAdminCourses(),
-          getAdminSubjects(),
-          getAdminBooks(),
-          getAdminHostelAllocations(),
-          getAdminTransportRoutes(),
-          getAdminCertificateRequests(),
-          getAdminComplaints(),
-          getAdminAllFees(),
+          getAdminAllFees()
         ]);
         setStuData(students || []);
         setFacultyData(faculty || []);
-        setNotices(noticeList || []);
-        setEvents(eventList || []);
-        setActivityLogs(logs || []);
-        setDepartments(depts || []);
-        setCourses(crs || []);
-        setSubjects(subs || []);
-        setBooks(bks || []);
-        setHostelAllocations(hostel || []);
-        setTransportRoutes(transport || []);
-        setCertificates(certs || []);
-        setComplaints(comps || []);
         setAllFees(fees || []);
-        await loadEnquiries();
+        
+        setIsLoading(false); // Unblock UI instantly
+
+        // Lazy load remaining data in background
+        getNotices().then(x => setNotices(x || []));
+        getEvents().then(x => setEvents(x || []));
+        getAdminActivityLogs().then(x => setActivityLogs(x || []));
+        getAdminDepartments().then(x => setDepartments(x || []));
+        getAdminCourses().then(x => setCourses(x || []));
+        getAdminSubjects().then(x => setSubjects(x || []));
+        getAdminBooks().then(x => setBooks(x || []));
+        getAdminHostelAllocations().then(x => setHostelAllocations(x || []));
+        getAdminTransportRoutes().then(x => setTransportRoutes(x || []));
+        getAdminCertificateRequests().then(x => setCertificates(x || []));
+        getAdminComplaints().then(x => setComplaints(x || []));
+        getAdminMarks().then(x => setMarksData(x || []));
+        getAdminResults().then(x => setResultsData(x || []));
+        loadEnquiries();
       } catch (err) {
         console.error('Error loading admin data:', err);
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
     init();
 
@@ -255,6 +251,55 @@ function AdminPortalPage() {
       setStuData(updatedStudents || []);
     };
     reader.readAsBinaryString(file);
+  };
+
+  const handleMarksExcelUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const wsname = wb.SheetNames[0];
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wsname]);
+      
+      const parsedMarks = data.map(row => ({
+        roll: String(row.roll || row.RollNo || row.rollNo || ''),
+        subject: String(row.subject || row.Subject || ''),
+        ia1: Number(row.ia1 || row.IA1 || 0),
+        ia2: Number(row.ia2 || row.IA2 || 0),
+        assignment: Number(row.assignment || row.Assignment || 0)
+      })).filter(m => m.roll && m.subject);
+
+      if (parsedMarks.length > 0) {
+        const res = await uploadAdminMarks(parsedMarks);
+        if (res && res.success) {
+          alert('Marks uploaded successfully!');
+          const newMarks = await getAdminMarks();
+          setMarksData(newMarks || []);
+          closeModal();
+        } else {
+          alert('Failed to upload marks.');
+        }
+      } else {
+        alert('Invalid or empty excel format. Needs columns: roll, subject, ia1, ia2, assignment');
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handlePublishResults = async () => {
+    const conf = window.confirm("Are you sure you want to calculate grades and publish results for all students based on uploaded marks?");
+    if (conf) {
+      const res = await publishAdminResults();
+      if (res && res.success) {
+        alert('Results calculated and published successfully!');
+        const newResults = await getAdminResults();
+        setResultsData(newResults || []);
+      } else {
+        alert('Failed to publish results.');
+      }
+    }
   };
 
   const filteredStudents = stuData.filter(s => {
@@ -354,7 +399,8 @@ function AdminPortalPage() {
       <div className="ap-dash-row">
         <div className="ap-dash-box" style={{ height: '350px' }}>
           <h4> Today's Attendance Summary</h4>
-          <ResponsiveContainer width="100%" height="100%">
+          {chartsMounted && (
+          <ResponsiveContainer width="99%" height={280}>
             <BarChart
               data={[
                 { name: 'CSE', present: 1180, total: 1200 },
@@ -375,10 +421,12 @@ function AdminPortalPage() {
               <Bar dataKey="total" fill="#e2e8f0" name="Total Students" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </div>
         <div className="ap-dash-box" style={{ height: '350px' }}>
           <h4> Department-wise Fee Collection (Cr)</h4>
-          <ResponsiveContainer width="100%" height="100%">
+          {chartsMounted && (
+          <ResponsiveContainer width="99%" height={280}>
             <BarChart
               data={[
                 { name: 'CSE', collected: 11.2, target: 12.0 },
@@ -399,6 +447,7 @@ function AdminPortalPage() {
               <Bar dataKey="target" fill="#e2e8f0" name="Target (Cr)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -517,7 +566,7 @@ function AdminPortalPage() {
         ))}
       </div>
       <div className="ap-controls">
-        <input placeholder=" Search students..." value={stuSearch} onChange={e=>setStuSearch(e.target.value)} />
+        <input aria-label="Search" placeholder=" Search students..." value={stuSearch} onChange={e=>setStuSearch(e.target.value)} />
         <select onChange={e=>setStuSearch(e.target.value===''?'':e.target.value)}>
           <option value="">All Departments</option>
           {['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}
@@ -595,7 +644,7 @@ function AdminPortalPage() {
         ))}
       </div>
       <div className="ap-controls">
-        <input placeholder=" Search faculty..." value={facultySearch} onChange={e=>setFacultySearch(e.target.value)} />
+        <input aria-label="Search" placeholder=" Search faculty..." value={facultySearch} onChange={e=>setFacultySearch(e.target.value)} />
         <select onChange={e=>setFacultySearch(e.target.value===''?'':e.target.value)}>
           <option value="">All Departments</option>
           {['CSE','ECE','Mech','Civil','IT','Biotech'].map(d=><option key={d}>{d}</option>)}
@@ -1165,56 +1214,95 @@ function AdminPortalPage() {
     </div>
   );
 
-  const renderResults = () => (
-    <div className="ap-page">
-      <div className="ap-page-header">
-        <div><h2>Results Management</h2><p>Upload marks, calculate GPA/CGPA and publish results</p></div>
-        <div className="ap-page-actions">
-          <button className="ap-btn sm outline" onClick={()=>alert('Publish results to student portals')}> Publish Results</button>
-          <button className="ap-btn sm gold" onClick={()=>openModal('uploadMarks')}> Upload Marks</button>
+  const renderResults = () => {
+    // Generate derived combined results data
+    const combinedData = [];
+    resultsData.forEach(r => {
+      // Find matching mark data
+      const mData = marksData.find(m => m.rollNo === r.rollNo);
+      if (r.sem3 && r.sem3.subjects) {
+        r.sem3.subjects.forEach(sub => {
+          let ia1 = 0, ia2 = 0, assignment = 0, total = 0;
+          if (mData && mData.subjects) {
+            const mSub = mData.subjects.find(s => s.name === sub.name);
+            if (mSub) {
+              ia1 = mSub.ia1;
+              ia2 = mSub.ia2;
+              assignment = mSub.assignment;
+              total = mSub.total;
+            }
+          }
+          combinedData.push({
+            rollNo: r.rollNo,
+            name: r.name || 'Unknown',
+            dept: r.dept,
+            sem: r.sem,
+            subject: sub.name,
+            ia1, ia2, assignment, total,
+            grade: sub.grade,
+            cgpa: r.sem3.gpa,
+            status: r.sem3.result
+          });
+        });
+      }
+    });
+
+    const passCount = resultsData.filter(r => r.sem3?.result === 'Pass').length;
+    const totalResults = resultsData.length;
+    const passPercentage = totalResults > 0 ? ((passCount / totalResults) * 100).toFixed(1) : '0.0';
+    const totalGpa = resultsData.reduce((sum, r) => sum + (r.sem3?.gpa || 0), 0);
+    const averageGpa = totalResults > 0 ? (totalGpa / totalResults).toFixed(2) : '0.00';
+    const arrearCount = resultsData.filter(r => r.sem3?.result === 'Arrear').length;
+    const rankHolders = resultsData.filter(r => (r.sem3?.gpa || 0) >= 9.0).length;
+
+    return (
+      <div className="ap-page">
+        <div className="ap-page-header">
+          <div><h2>Results Management</h2><p>Upload marks, calculate GPA/CGPA and publish results</p></div>
+          <div className="ap-page-actions">
+            <button className="ap-btn sm outline" onClick={handlePublishResults}> Publish Results</button>
+            <button className="ap-btn sm gold" onClick={()=>openModal('uploadMarks')}> Upload Marks</button>
+          </div>
+        </div>
+        <div className="ap-adm-stats">
+          <div className="ap-adm-card green"><h4>{passPercentage}%</h4><p>Pass Percentage</p></div>
+          <div className="ap-adm-card blue"><h4>{averageGpa}</h4><p>Average GPA</p></div>
+          <div className="ap-adm-card yellow"><h4>{arrearCount}</h4><p>Arrear Students</p></div>
+          <div className="ap-adm-card purple"><h4>{rankHolders}</h4><p>Rank Holders</p></div>
+        </div>
+        <div className="ap-controls">
+          <select><option>All Departments</option><option>CSE</option><option>ECE</option></select>
+          <select><option>All Subjects</option></select>
+          <input aria-label="Search" placeholder=" Search student..." />
+        </div>
+        <div className="ap-table-wrap">
+          <div className="ap-scroll-table">
+            <table className="ap-table">
+              <thead><tr><th>#</th><th>Roll No.</th><th>Name</th><th>Subject</th><th>IA1</th><th>IA2</th><th>Assign</th><th>Total</th><th>Grade</th><th>GPA</th><th>Status</th></tr></thead>
+              <tbody>
+                {combinedData.map((d, i) => (
+                  <tr key={i}>
+                    <td>{i+1}</td>
+                    <td style={{fontWeight:700,color:'#2563eb'}}>{d.rollNo}</td>
+                    <td style={{fontWeight:600}}>{d.name}</td>
+                    <td>{d.subject}</td>
+                    <td>{d.ia1}/25</td><td>{d.ia2}/25</td><td>{d.assignment}/10</td>
+                    <td style={{fontWeight:700}}>{d.total}/60</td>
+                    <td><span className={d.status==='Pass'?'badge-ok':'badge-low'}>{d.grade}</span></td>
+                    <td style={{fontWeight:700,color:'#2563eb'}}>{d.cgpa}</td>
+                    <td><span className={d.status==='Pass'?'badge-ok':'badge-low'}>{d.status}</span></td>
+                  </tr>
+                ))}
+                {combinedData.length === 0 && (
+                  <tr><td colSpan="11" style={{textAlign:'center',padding:20,color:'#64748b'}}>No results generated yet. Upload marks and publish results.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <div className="ap-adm-stats">
-        <div className="ap-adm-card green"><h4>89.2%</h4><p>Pass Percentage</p></div>
-        <div className="ap-adm-card blue"><h4>8.45</h4><p>Average GPA</p></div>
-        <div className="ap-adm-card yellow"><h4>48</h4><p>Arrear Students</p></div>
-        <div className="ap-adm-card purple"><h4>12</h4><p>Rank Holders</p></div>
-      </div>
-      <div className="ap-controls">
-        <select><option>CSE  Semester 5</option><option>CSE  Semester 3</option><option>ECE  Semester 5</option></select>
-        <select><option>All Subjects</option><option>CS501 - DS</option><option>CS502 - OS</option><option>CS503 - DBMS</option></select>
-        <input placeholder=" Search student..." />
-      </div>
-      <div className="ap-table-wrap">
-        <div className="ap-scroll-table">
-          <table className="ap-table">
-            <thead><tr><th>#</th><th>Roll No.</th><th>Name</th><th>IA1</th><th>IA2</th><th>Assignment</th><th>Internal Total</th><th>Semester Grade</th><th>CGPA</th><th>Status</th></tr></thead>
-            <tbody>
-              {[
-                ['21CS001','Arjun Ramesh',22,20,9,51,'A (9.0)','8.45','Pass'],
-                ['21CS002','Priya Lakshmi',23,22,10,55,'A+ (10)','9.12','Pass'],
-                ['21CS003','Ravi Kumar',18,17,8,43,'B+ (8.0)','7.82','Pass'],
-                ['21CS004','Anitha S',15,14,7,36,'B (7.0)','7.20','Pass'],
-                ['21CS005','Karthik V',12,11,6,29,'C (6.0)','6.50','Pass'],
-                ['21CS006','Deepa M',8,9,5,22,'D (5.0)','5.80','Arrear'],
-              ].map(([roll,name,ia1,ia2,asgn,total,grade,cgpa,status],i) => (
-                <tr key={roll}>
-                  <td>{i+1}</td>
-                  <td style={{fontWeight:700,color:'#2563eb'}}>{roll}</td>
-                  <td style={{fontWeight:600}}>{name}</td>
-                  <td>{ia1}/25</td><td>{ia2}/25</td><td>{asgn}/10</td>
-                  <td style={{fontWeight:700}}>{total}/60</td>
-                  <td><span className={status==='Pass'?'badge-ok':'badge-low'}>{grade}</span></td>
-                  <td style={{fontWeight:700,color:'#2563eb'}}>{cgpa}</td>
-                  <td><span className={status==='Pass'?'badge-ok':'badge-low'}>{status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderFees = () => {
     const filteredFees = allFees.filter(f => {
@@ -1637,7 +1725,7 @@ function AdminPortalPage() {
         <div className="ap-adm-card purple"><h4>1,840</h4><p>Registrations</p></div>
       </div>
       <div className="ap-controls">
-        <input placeholder=" Search events..."/>
+        <input aria-label="Search" placeholder=" Search events..."/>
         <select><option>All Types</option><option>Tech Fest</option><option>Workshop</option><option>Seminar</option><option>Sports</option><option>Cultural</option></select>
         <select><option>All Status</option><option>Upcoming</option><option>Ongoing</option><option>Completed</option></select>
       </div>
@@ -2163,6 +2251,7 @@ function AdminPortalPage() {
     const isEvent = modal.type === 'event';
     const isDepartment = modal.type === 'department' || modal.type === 'editDepartment';
     const isCourse = modal.type === 'course' || modal.type === 'editCourse';
+    const isUploadMarks = modal.type === 'uploadMarks';
 
     const title = {
       student:'Add New Student', editStudent:'Edit Student', faculty:'Add New Faculty',
@@ -2186,13 +2275,21 @@ function AdminPortalPage() {
       if (modal.type === 'editStudent' && modal.data) {
         const res = await updateAdminStudent(modal.data._id || modal.data.id, newStudent);
         if (res && !res.error) {
-          setStuData(stuData.map(s => (s._id === res._id || s.id === res.id) ? res : s));
+          setStuData(stuData.map(s => (s._id === res._id || (s.id && res.id && s.id === res.id)) ? res : s));
           alert('Student updated successfully!'); closeModal();
         } else {
           alert('Failed to update student');
         }
       } else {
-        const res = await addAdminStudent({ ...newStudent, status: 'Active', profileCompleted: true });
+        const trimmedStudent = {
+          ...newStudent,
+          roll: newStudent.roll.trim(),
+          email: newStudent.email.trim(),
+          password: newStudent.password.trim(),
+          status: 'Active',
+          profileCompleted: true
+        };
+        const res = await addAdminStudent(trimmedStudent);
         if (res && !res.error) {
           setStuData([...stuData, res]);
           setNewStudent({ 
@@ -2208,7 +2305,14 @@ function AdminPortalPage() {
     };
     const handleAddFaculty = async () => {
       if (!newFaculty.name || !newFaculty.empId || !newFaculty.email || !newFaculty.password) { alert('Please fill required fields!'); return; }
-      const res = await addAdminFaculty({ ...newFaculty, status: 'Active' });
+      const trimmedFaculty = {
+        ...newFaculty,
+        empId: newFaculty.empId.trim(),
+        email: newFaculty.email.trim(),
+        password: newFaculty.password.trim(),
+        status: 'Active'
+      };
+      const res = await addAdminFaculty(trimmedFaculty);
       if (res && !res.error) {
         setFacultyData([...facultyData, res]);
         setNewFaculty({ name:'', empId:'', dept:'CSE', designation:'Asst. Professor', email:'', phone:'', qualification:'Ph.D', experience:'', specialization:'', password:'' });
@@ -2255,7 +2359,7 @@ function AdminPortalPage() {
       }
       if (res && !res.error) {
         if (modal.type === 'editCourse') {
-          setCourses(courses.map(c => (c._id === res._id || c.id === res.id) ? res : c));
+          setCourses(courses.map(c => (c._id === res._id || (c.id && res.id && c.id === res.id)) ? res : c));
         } else {
           setCourses([...courses, res]);
         }
@@ -2275,7 +2379,7 @@ function AdminPortalPage() {
       }
       if (res && !res.error) {
         if (modal.type === 'editDepartment') {
-          setDepartments(departments.map(d => (d._id === res._id || d.id === res.id) ? res : d));
+          setDepartments(departments.map(d => (d._id === res._id || (d.id && res.id && d.id === res.id)) ? res : d));
         } else {
           setDepartments([...departments, res]);
         }
@@ -2408,14 +2512,25 @@ function AdminPortalPage() {
                 <div className="ap-form-group"><label>Faculty Assigned</label><input type="text" placeholder="Faculty name" style={inp} value={newCourse.faculty} onChange={e=>setNewCourse({...newCourse,faculty:e.target.value})}/></div>
               </>
             )}
-            {!isStudent && !isFaculty && !isNotice && !isEvent && !isDepartment && !isCourse && (
+            {isUploadMarks && (
+              <>
+                <div className="ap-form-group">
+                  <label>Upload Marks (Excel .xlsx)</label>
+                  <input type="file" accept=".xlsx, .xls" style={{...inp, padding: '8px'}} onChange={handleMarksExcelUpload} />
+                  <p style={{fontSize: 12, color: '#64748b', marginTop: 8}}>
+                    Expected columns: roll, subject, ia1, ia2, assignment.
+                  </p>
+                </div>
+              </>
+            )}
+            {!isStudent && !isFaculty && !isNotice && !isEvent && !isDepartment && !isCourse && !isUploadMarks && (
               <div className="ap-empty"><div className="ap-empty-icon"></div><p>Form for <strong>{title}</strong>  action logged successfully.<br/><span style={{fontSize:12,color:'#94a3b8'}}>Full implementation available in production build.</span></p></div>
             )}
           </div>
           <div className="ap-modal-footer">
             <button className="ap-btn ghost" onClick={closeModal}>Cancel</button>
-            <button className="ap-btn gold" onClick={isStudent ? handleAddStudent : isFaculty ? handleAddFaculty : isNotice ? handleAddNotice : isEvent ? handleAddEvent : isDepartment ? handleAddDepartment : isCourse ? handleAddCourse : () => { alert(`${title} action completed!`); closeModal(); }}>
-              {isStudent ? (modal.type==='editStudent'?'Update Student':'Add Student') : isFaculty ? 'Add Faculty' : isNotice ? 'Post Notice' : isEvent ? 'Create Event' : isDepartment ? (modal.type==='editDepartment'?'Update Department':'Add Department') : isCourse ? (modal.type==='editCourse'?'Update Course':'Add Course') : 'Save'}
+            <button className="ap-btn gold" onClick={isStudent ? handleAddStudent : isFaculty ? handleAddFaculty : isNotice ? handleAddNotice : isEvent ? handleAddEvent : isDepartment ? handleAddDepartment : isCourse ? handleAddCourse : isUploadMarks ? closeModal : () => { alert(`${title} action completed!`); closeModal(); }}>
+              {isStudent ? (modal.type==='editStudent'?'Update Student':'Add Student') : isFaculty ? 'Add Faculty' : isNotice ? 'Post Notice' : isEvent ? 'Create Event' : isDepartment ? (modal.type==='editDepartment'?'Update Department':'Add Department') : isCourse ? (modal.type==='editCourse'?'Update Course':'Add Course') : isUploadMarks ? 'Done' : 'Save'}
             </button>
           </div>
         </div>

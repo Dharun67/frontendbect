@@ -44,5 +44,6 @@
   "devDependencies": {
     "ipaddr.js": "^2.4.0",
     "nodemon": "^3.1.14"
-  }
+  },
+  "proxy": "http://localhost:5000"
 }

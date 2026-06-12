@@ -4,7 +4,7 @@
 // on every request via `credentials: 'include'`.
 
 const isProduction = process.env.NODE_ENV === "production";
-const backendUrl = "https://backendbect.onrender.com";
+const backendUrl = isProduction ? "https://backendbect.onrender.com" : "";
 
 const API_BASE = `${backendUrl}/api/portal`;
 
@@ -611,6 +611,49 @@ export const updateAdmissionStatus = async (id, status, reviewNotes = "", review
     return await res.json();
   } catch (error) {
     return null;
+  }
+};
+
+export const getAdminMarks = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/marks`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const uploadAdminMarks = async (marksData) => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/marks/upload`, {
+      method: "POST",
+      body: JSON.stringify({ marksData }),
+    });
+    return await res.json();
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const getAdminResults = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/results`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const publishAdminResults = async () => {
+  try {
+    const res = await authenticatedFetch(`${API_BASE}/admin/results/publish`, {
+      method: "POST",
+    });
+    return await res.json();
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 };
 

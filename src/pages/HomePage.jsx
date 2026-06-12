@@ -4,6 +4,7 @@ import Footer from '../components/layout/Footer';
 import { initializeDefaultData, submitAdmissionsEnquiry } from '../utils/storage';
 import '../assets/css/professional.css';
 import principalImg from '../assets/images/principal.webp';
+import rifazImg from '../assets/images/rifaz.jpeg';
 
 /* ─── Animated Counter Hook ─────────────────────────────── */
 function useCounter(target, duration = 2000, start = false) {
@@ -625,7 +626,7 @@ function Home() {
           <p className="sec-sub" style={{ color: 'rgba(255,255,255,0.65)' }}>BEC graduates making an impact across the globe</p>
           <div className="alumni-grid">
             {[
-              { img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80', name: 'Karthik Rajan', batch: 'CSE 2018', role: 'Senior SDE', company: 'Google', location: 'Bengaluru', color: '#4285F4' },
+              { img: rifazImg, name: 'Rifaz', batch: 'CSE 2018', role: 'Senior SDE', company: 'Google', location: 'Bengaluru', color: '#4285F4' },
               { img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80', name: 'Divya Nair', batch: 'ECE 2019', role: 'VLSI Design Engineer', company: 'Intel', location: 'Hyderabad', color: '#0071C5' },
               { img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80', name: 'Suresh Mohan', batch: 'MECH 2017', role: 'Product Engineer', company: 'Bosch', location: 'Coimbatore', color: '#E20613' },
               { img: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&q=80', name: 'Ananya Priya', batch: 'IT 2020', role: 'Data Scientist', company: 'Amazon', location: 'Chennai', color: '#FF9900' },
@@ -708,7 +709,7 @@ function Home() {
             <h4 className="partner-group-title">Universities &amp; Research</h4>
             <div className="partner-logo-row">
               {[
-                { name: 'IIT Madras',      logo: 'https://www.google.com/s2/favicons?domain=iitm.ac.in&sz=64' },
+                { name: 'IIT Madras',      logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/69/IIT_Madras_Logo.svg/200px-IIT_Madras_Logo.svg.png' },
                 { name: 'Anna University', logo: 'https://www.google.com/s2/favicons?domain=annauniv.edu&sz=64' },
                 { name: 'NIT Trichy',      logo: 'https://www.google.com/s2/favicons?domain=nitt.edu&sz=64' },
                 { name: 'VIT Vellore',     logo: 'https://www.google.com/s2/favicons?domain=vit.ac.in&sz=64' },
@@ -753,11 +754,11 @@ function Home() {
         <p className="sec-sub">150+ leading companies hire our graduates every year</p>
         <div className="recruit-row">
           {[
-            { name: 'TCS',           domain: 'tcs.com',           color: '#0096D8', logo: 'https://www.google.com/s2/favicons?domain=tcs.com&sz=128' },
+            { name: 'TCS',           domain: 'tcs.com',           color: '#0096D8', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Tata_Consultancy_Services_Logo.svg/200px-Tata_Consultancy_Services_Logo.svg.png' },
             { name: 'Infosys',       domain: 'infosys.com',       color: '#007CC3', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Infosys_logo.svg/200px-Infosys_logo.svg.png' },
             { name: 'Wipro',         domain: 'wipro.com',         color: '#341C5C', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Wipro_Primary_Logo_Color_RGB.svg/200px-Wipro_Primary_Logo_Color_RGB.svg.png' },
             { name: 'Cognizant',     domain: 'cognizant.com',     color: '#1C4DA1', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Cognizant%27s_logo.svg/200px-Cognizant%27s_logo.svg.png' },
-            { name: 'HCL',           domain: 'hcltech.com',       color: '#0076C0', logo: 'https://www.google.com/s2/favicons?domain=hcltech.com&sz=128' },
+            { name: 'HCL',           domain: 'hcltech.com',       color: '#0076C0', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/HCL_Technologies_logo.svg/200px-HCL_Technologies_logo.svg.png' },
             { name: 'Accenture',     domain: 'accenture.com',     color: '#A100FF', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Accenture.svg/200px-Accenture.svg.png' },
             { name: 'Capgemini',     domain: 'capgemini.com',     color: '#0070AD', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Capgemini_201x_logo.svg/200px-Capgemini_201x_logo.svg.png' },
             { name: 'IBM',           domain: 'ibm.com',           color: '#006699', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/IBM_logo.svg/200px-IBM_logo.svg.png' },
@@ -776,15 +777,9 @@ function Home() {
                 alt={company.name}
                 className="recruit-logo"
                 onError={(e) => {
-                  if (!e.target.dataset.fb) {
-                    /* First fallback: Google Favicon (always works) */
-                    e.target.dataset.fb = '1';
-                    e.target.src = `https://www.google.com/s2/favicons?domain=${company.domain}&sz=128`;
-                  } else {
-                    /* Last resort: show branded color initial */
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'flex';
-                  }
+                  /* Last resort: show branded color initial */
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
                 }}
               />
               <div className="recruit-initial" style={{ display: 'none', background: company.color }}>

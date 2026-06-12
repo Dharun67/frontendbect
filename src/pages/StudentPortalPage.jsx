@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clgLogo from '../assets/images/CLGLOGO.webp';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { getSessionUser, logoutUser, getAttendance, getFees, getTimetable, getAssignments, getNotifications, getResults, submitAssignment, payFeesOnline, submitLeaveApplication, getLeaveApplications, getStudentHallTicket, uploadStudentPhoto, getNotices, getAdminSubjects, getAdminBooks, getPlacements, getAdminTransportRoutes, getAdminHostelAllocations, getStudentComplaints, createStudentComplaint, getStudentCertificates, createCertificateRequest, updateStudentProfile, markNotificationsRead, getMarks } from '../utils/storage';
+import { getSessionUser, logoutUser, getAttendance, getFees, getTimetable, getAssignments, getNotifications, getResults, submitAssignment, payFeesOnline, submitLeaveApplication, getLeaveApplications, getStudentHallTicket, uploadStudentPhoto, getNotices, getAdminSubjects, getAdminBooks, getPlacements, getAdminTransportRoutes, getAdminHostelAllocations, getStudentComplaints, createStudentComplaint, getStudentCertificates, createCertificateRequest, markNotificationsRead } from '../utils/storage';
 import '../assets/css/student-portal.css';
 
 function StudentPortalPage() {
@@ -33,6 +33,8 @@ function StudentPortalPage() {
   const [activePage, setActivePage] = useState('dashboard');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [chartsMounted, setChartsMounted] = useState(false);
+  useEffect(() => { setChartsMounted(true); }, []);
 
   // 1. Interactive States for new features:
   // Academics (Syllabus Modal)
@@ -66,7 +68,6 @@ function StudentPortalPage() {
   const [leaveReason, setLeaveReason] = useState('');
 
   // Documents Download status
-  const [downloadedDocs] = useState([]);
 
   // Clubs and Events Registration
   const [joinedClubs, setJoinedClubs] = useState([]);
@@ -90,51 +91,37 @@ function StudentPortalPage() {
       setStudentData(student);
       const rollNo = student.roll;
       try {
-        const [
-          attendance, fees, assignments, notifications, results, leaves, timetable,
-          notices, subjects, books, placements, transport, hostel, tickets, certificates, hallTicket
-        ] = await Promise.all([
+        const [attendance, fees, assignments, notifications] = await Promise.all([
           getAttendance(rollNo),
           getFees(rollNo),
           getAssignments(rollNo),
-          getNotifications(rollNo),
-          getResults(rollNo),
-          getLeaveApplications(rollNo),
-          getTimetable(student.dept, student.sem || ''),
-          getNotices(),
-          getAdminSubjects(),
-          getAdminBooks(),
-          getPlacements(),
-          getAdminTransportRoutes(),
-          getAdminHostelAllocations(),
-          getStudentComplaints(rollNo),
-          getStudentCertificates(rollNo),
-          getStudentHallTicket(rollNo)
+          getNotifications(rollNo)
         ]);
         setAttendanceData(attendance);
         setFeesData(fees);
         setAssignmentsData(assignments);
         setNotificationsData(notifications);
-        setResultsData(results);
-        setTimetableData(timetable || []);
-        if (leaves && leaves.length > 0) {
-          setLeavesHistory(leaves);
-        }
-        setNoticesData(notices || []);
-        setSubjectsData(subjects || []);
-        setBooksData(books || []);
-        setPlacementDrives(placements?.drives || []);
-        setTransportRoutes(transport || []);
         
-        const myHostel = hostel?.find(h => h.roll === rollNo) || null;
-        setHostelAllocation(myHostel);
-        
-        setSupportTickets(tickets || []);
-        setCertificatesData(certificates || []);
-        
-        if (hallTicket && hallTicket.success) {
-          setExamSchedules(hallTicket.schedules || []);
-        }
+        setIsLoading(false); // Unblock UI instantly
+
+        // Lazy load the rest in the background
+        getResults(rollNo).then(setResultsData).catch(() => {});
+        getLeaveApplications(rollNo).then(leaves => { if (leaves?.length) setLeavesHistory(leaves); }).catch(() => {});
+        getTimetable(student.dept, student.sem || '').then(t => setTimetableData(t || [])).catch(() => {});
+        getNotices().then(n => setNoticesData(n || [])).catch(() => {});
+        getAdminSubjects().then(s => setSubjectsData(s || [])).catch(() => {});
+        getAdminBooks().then(b => setBooksData(b || [])).catch(() => {});
+        getPlacements().then(p => setPlacementDrives(p?.drives || [])).catch(() => {});
+        getAdminTransportRoutes().then(t => setTransportRoutes(t || [])).catch(() => {});
+        getAdminHostelAllocations().then(h => {
+          const myHostel = h?.find(x => x.roll === rollNo) || null;
+          setHostelAllocation(myHostel);
+        }).catch(() => {});
+        getStudentComplaints(rollNo).then(t => setSupportTickets(t || [])).catch(() => {});
+        getStudentCertificates(rollNo).then(c => setCertificatesData(c || [])).catch(() => {});
+        getStudentHallTicket(rollNo).then(h => {
+          if (h && h.success) setExamSchedules(h.schedules || []);
+        }).catch(() => {});
 
         const advisorMap = {
           CSE: "Dr. Ramesh Kumar",
@@ -146,8 +133,6 @@ function StudentPortalPage() {
         setAdvisorName(advisorMap[student.dept] || "Dr. Ramesh Kumar");
       } catch (e) {
         console.error('Error loading student data from backend:', e);
-      } finally {
-        setIsLoading(false);
       }
     };
     init();
@@ -1059,7 +1044,8 @@ function StudentPortalPage() {
                     <h3>Academic Performance Trend</h3>
                   </div>
                   <div className="card-body" style={{ height: '280px' }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    {chartsMounted && (
+                    <ResponsiveContainer width="99%" height={250}>
                       <BarChart
                         data={[
                           { semester: 'Sem 1', gpa: 8.4 },
@@ -1074,9 +1060,10 @@ function StudentPortalPage() {
                         <YAxis domain={[0, 10]} />
                         <Tooltip cursor={{ fill: 'transparent' }} />
                         <Legend />
-                        <Bar dataKey="gpa" fill="#1e3a5f" name="GPA" radius={[4, 4, 0, 0]} barSize={40} />
+                        <Bar dataKey="gpa" fill="#2d4e7aff" name="GPA" radius={[4, 4, 0, 0]} barSize={40} />
                       </BarChart>
                     </ResponsiveContainer>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1542,7 +1529,8 @@ function StudentPortalPage() {
                 <div className="dashboard-card" style={{ marginBottom: '20px', padding: '20px' }}>
                   <h4 style={{ color: '#1e3a8a', fontSize: '15px', fontWeight: '700', marginBottom: '15px' }}>GPA Progression Analytics</h4>
                   <div style={{ height: '250px', width: '100%' }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    {chartsMounted && (
+                    <ResponsiveContainer width="99%" height={250}>
                       <BarChart data={Object.keys(resultsData).map(sem => ({
                         name: `Sem ${sem.replace('sem', '')}`,
                         gpa: parseFloat(resultsData[sem].gpa) || 0
@@ -1554,6 +1542,7 @@ function StudentPortalPage() {
                         <Bar dataKey="gpa" fill="#1e3a8a" name="GPA" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
+                    )}
                   </div>
                 </div>
               )}

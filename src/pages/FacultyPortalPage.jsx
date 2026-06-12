@@ -46,6 +46,8 @@ export default function FacultyPortalPage() {
   const navigate   = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage]               = useState('dashboard');
+  const [chartsMounted, setChartsMounted] = useState(false);
+  useEffect(() => { setChartsMounted(true); }, []);
   const [sideOpen, setSideOpen]       = useState(true);
   const [facultyData, setFacultyData] = useState(null);
   const [facultyStudents, setFacultyStudents] = useState([]);
@@ -96,82 +98,83 @@ export default function FacultyPortalPage() {
         joiningDate: loggedFaculty.joiningDate || '',
       });
       try {
-        const [students, assignList, leaves, allCourses, timetable] = await Promise.all([
-          getStudents(loggedFaculty.dept),
-          getFacultyAssignments(),
-          getFacultyLeaveRequests(),
-          getAdminCourses(),
-          getTimetable(loggedFaculty.dept, 5)
-        ]);
+        const students = await getStudents(loggedFaculty.dept);
         setFacultyStudents(students);
         setMarksData(students.map(s => ({
           roll: s.roll, name: s.name, cls: s.cls,
           ia1: s.ia, ia2: s.ia2, assignment: s.assignment
         })));
         setAttData(students.map(s => ({ roll: s.roll, name: s.name, cls: s.cls, present: true })));
-        setAssignments(assignList);
-        setLeaveRequests(leaves);
 
-        // Filter and map courses
-        const myCourses = allCourses.filter(c => c.dept === loggedFaculty.dept);
-        const mappedCourses = myCourses.map((c, i) => ({
-          id: c._id || `c-${i}`,
-          code: c.code,
-          name: c.name,
-          cls: c.cls || (i % 2 === 0 ? '21CS-A' : '21CS-B'), // section not in DB schema yet
-          sem: c.sem,
-          credits: c.credits,
-          students: c.studentsCount || 0,
-          classes: c.classesTotal || 0,
-          done: c.classesCompleted || 0,
-          pct: 0
-        }));
-        setCourses(mappedCourses);
-        const mappedTimetable = {};
-        if (timetable && timetable.length > 0) {
-          timetable.forEach(item => {
-            mappedTimetable[item.day] = item.slots.map((slot, idx) => {
-              if (slot === '—' || slot === 'Lunch') return slot;
-              return `${slot} / ${idx % 2 === 0 ? '21CS-A' : '21CS-B'}`;
+        setIsLoading(false); // Unblock UI instantly
+
+        // Lazy load the rest in the background
+        getFacultyAssignments().then(setAssignments).catch(() => {});
+        getFacultyLeaveRequests().then(setLeaveRequests).catch(() => {});
+        
+        getAdminCourses().then(allCourses => {
+          const myCourses = allCourses.filter(c => c.dept === loggedFaculty.dept);
+          const mappedCourses = myCourses.map((c, i) => ({
+            id: c._id || `c-${i}`,
+            code: c.code,
+            name: c.name,
+            cls: c.cls || (i % 2 === 0 ? '21CS-A' : '21CS-B'),
+            sem: c.sem,
+            credits: c.credits,
+            students: c.studentsCount || 0,
+            classes: c.classesTotal || 0,
+            done: c.classesCompleted || 0,
+            pct: 0
+          }));
+          setCourses(mappedCourses);
+        }).catch(() => {});
+
+        getTimetable(loggedFaculty.dept, 5).then(timetable => {
+          const mappedTimetable = {};
+          if (timetable && timetable.length > 0) {
+            timetable.forEach(item => {
+              mappedTimetable[item.day] = item.slots.map((slot, idx) => {
+                if (slot === '—' || slot === 'Lunch') return slot;
+                return `${slot} / ${idx % 2 === 0 ? '21CS-A' : '21CS-B'}`;
+              });
             });
-          });
-          setWeeklyTimetable(mappedTimetable);
-        } else {
-          setWeeklyTimetable({});
-        }
-        const getTodaySchedule = (timetableList) => {
-          if (!timetableList || timetableList.length === 0) return [];
-          const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-          const todayName = days[new Date().getDay()];
-          const dayName = (todayName === 'Sun' || todayName === 'Sat') ? 'Mon' : todayName;
-          const daySchedule = timetableList.find(d => d.day === dayName);
-          if (!daySchedule) return [];
-          const timeSlots = [
-            "09:00 AM",
-            "10:00 AM",
-            "11:00 AM",
-            "12:00 PM",
-            "02:00 PM",
-            "03:00 PM",
-            "04:00 PM"
-          ];
-          return daySchedule.slots.map((slot, i) => {
-            if (slot === 'Lunch' || slot === '—') return null;
-            return {
-              time: timeSlots[i],
-              subject: slot,
-              section: i % 2 === 0 ? '21CS-A' : '21CS-B',
-              room: "Assigned Room",
-              type: "Theory"
-            };
-          }).filter(Boolean);
-        };
-        const derivedSchedule = getTodaySchedule(timetable);
-        setTodaySchedule(derivedSchedule);
+            setWeeklyTimetable(mappedTimetable);
+          } else {
+            setWeeklyTimetable({});
+          }
+          const getTodaySchedule = (timetableList) => {
+            if (!timetableList || timetableList.length === 0) return [];
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const todayName = days[new Date().getDay()];
+            const dayName = (todayName === 'Sun' || todayName === 'Sat') ? 'Mon' : todayName;
+            const daySchedule = timetableList.find(d => d.day === dayName);
+            if (!daySchedule) return [];
+            const timeSlots = [
+              "09:00 AM",
+              "10:00 AM",
+              "11:00 AM",
+              "12:00 PM",
+              "02:00 PM",
+              "03:00 PM",
+              "04:00 PM"
+            ];
+            return daySchedule.slots.map((slot, i) => {
+              if (slot === 'Lunch' || slot === '—') return null;
+              return {
+                time: timeSlots[i],
+                subject: slot,
+                section: i % 2 === 0 ? '21CS-A' : '21CS-B',
+                room: "Assigned Room",
+                type: "Theory"
+              };
+            }).filter(Boolean);
+          };
+          const derivedSchedule = getTodaySchedule(timetable);
+          setTodaySchedule(derivedSchedule);
+        }).catch(() => {});
+
       } catch (err) {
         console.error('Error loading faculty portal data:', err);
-      } finally {
-        setIsLoading(false);
       }
     };
     init();
@@ -645,7 +648,8 @@ export default function FacultyPortalPage() {
                   </div>
                   <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1, height: '300px' }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                      {chartsMounted && (
+                      <ResponsiveContainer width="99%" height={280}>
                         <BarChart
                           data={courses.map(c => {
                             const sect = facultyStudents.filter(s => s.cls === c.cls);
@@ -662,6 +666,7 @@ export default function FacultyPortalPage() {
                           <Bar dataKey="avgAtt" fill="#3b82f6" name="Average Attendance (%)" radius={[4, 4, 0, 0]} barSize={40} />
                         </BarChart>
                       </ResponsiveContainer>
+                      )}
                     </div>
                     <div style={{ flex: 1 }}>
                       <table className="fp-table">
@@ -694,7 +699,8 @@ export default function FacultyPortalPage() {
                   </div>
                   <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1, height: '300px' }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                      {chartsMounted && (
+                      <ResponsiveContainer width="99%" height={280}>
                         <BarChart
                           data={courses.map(c => {
                             const sect = marksData.filter(s => s.cls === c.cls);
@@ -713,6 +719,7 @@ export default function FacultyPortalPage() {
                           <Bar dataKey="IA2" fill="#8b5cf6" name="Avg IA-2 (Out of 25)" radius={[4, 4, 0, 0]} barSize={20} />
                         </BarChart>
                       </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
                 </div>
