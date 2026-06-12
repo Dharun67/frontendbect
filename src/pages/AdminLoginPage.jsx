@@ -36,7 +36,7 @@ function AdminLoginPage() {
       setSessionType('admin');
       navigate('/admin-portal');
     } else {
-      setMessage({ type: 'error', text: 'Invalid credentials. Use demo: admin / admin123' });
+      setMessage({ type: 'error', text: result.message || 'Invalid credentials. Use demo: admin / admin123' });
     }
   };
 
